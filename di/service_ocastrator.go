@@ -1,8 +1,10 @@
 package di
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/joho/godotenv"
 
@@ -12,6 +14,7 @@ import (
 
 var walletService interfaces.WalletService
 var rpcService interfaces.RpcService
+var storage interfaces.Storage
 
 func SetupServices() {
 	err := godotenv.Load(".env")
@@ -28,8 +31,29 @@ func SetupServices() {
 		PasswordManager: &services.PasswordManager{},
 		RpcService:      rpcService,
 	}
-
+	storage = setupDatabase()
 }
+
+func setupDatabase() interfaces.Storage {
+	storage := &services.Storage{}
+
+	dbPath := os.Getenv("DbPath")
+	dbName := os.Getenv("DbName")
+	dbFile := "./db.sql"
+	dbData := FileFromExecutable(&dbFile)
+	tablesData, err := os.ReadFile(*dbData)
+
+	if err != nil {
+		log.Fatal("Couldn't find database file, aborting!")
+	}
+
+	tables := string(tablesData)
+	storage.New(&dbPath, &dbName, &tables)
+	storage.Open()
+	storage.Initialize()
+	return storage
+}
+
 func getRpc() *string {
 	rpc := os.Getenv("RPC")
 
@@ -48,4 +72,22 @@ func WalletService() interfaces.WalletService {
 
 func RpcService() interfaces.RpcService {
 	return rpcService
+}
+
+func DatabaseService() interfaces.Storage {
+	return storage
+}
+
+func getExecutablePath() string {
+	exePath, err := os.Executable()
+	if err != nil {
+		fmt.Println("Error getting executable path:", err)
+		os.Exit(1)
+	}
+	return filepath.Dir(exePath)
+}
+
+func FileFromExecutable(fileName *string) *string {
+	path := filepath.Join(getExecutablePath(), *fileName)
+	return &path
 }

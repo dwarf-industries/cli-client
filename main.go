@@ -25,10 +25,14 @@ func main() {
 	rpcCommand := commands.SetRpcCommand{
 		RpcService: di.RpcService(),
 	}
+	addUserCommand := commands.AddUserCommand{
+		UsersRepository: di.UsersRepository(),
+	}
 
 	rootCmd.AddCommand(addWalletcommand.Executable())
 	rootCmd.AddCommand(generateWalletCommand.Executable())
 	rootCmd.AddCommand(rpcCommand.Executable())
+	rootCmd.AddCommand(addUserCommand.Executable())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

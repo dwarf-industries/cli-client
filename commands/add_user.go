@@ -9,11 +9,11 @@ import (
 	"client/repositories"
 )
 
-type UsersCommand struct {
+type AddUserCommand struct {
 	UsersRepository repositories.UsersRepository
 }
 
-func (u *UsersCommand) Executable() *cobra.Command {
+func (u *AddUserCommand) Executable() *cobra.Command {
 	return &cobra.Command{
 		Use:   "add-user [certificate path] [name]",
 		Short: "Add a new user to the contact list",
@@ -27,7 +27,7 @@ func (u *UsersCommand) Executable() *cobra.Command {
 	}
 }
 
-func (u *UsersCommand) Execute(certificatePath *string, name *string) {
+func (u *AddUserCommand) Execute(certificatePath *string, name *string) {
 	file, err := os.ReadFile(*certificatePath)
 	if err != nil {
 		fmt.Println("File doesn't exist!")
