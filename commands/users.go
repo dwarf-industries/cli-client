@@ -17,8 +17,8 @@ type UsersCommand struct {
 
 func (u *UsersCommand) Executable() *cobra.Command {
 	return &cobra.Command{
-		Use:   "add-user [certificate path] [name]",
-		Short: "Add a new user to the contact list",
+		Use:   "users",
+		Short: "Lists all users from the contact list",
 		Run: func(cmd *cobra.Command, args []string) {
 			u.Execute()
 		},
