@@ -28,11 +28,15 @@ func main() {
 	addUserCommand := commands.AddUserCommand{
 		UsersRepository: di.UsersRepository(),
 	}
+	usersCommand := commands.UsersCommand{
+		UsersRepository: di.UsersRepository(),
+	}
 
 	rootCmd.AddCommand(addWalletcommand.Executable())
 	rootCmd.AddCommand(generateWalletCommand.Executable())
 	rootCmd.AddCommand(rpcCommand.Executable())
 	rootCmd.AddCommand(addUserCommand.Executable())
+	rootCmd.AddCommand(usersCommand.Executable())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
