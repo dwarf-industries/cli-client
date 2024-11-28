@@ -13,7 +13,7 @@ import (
 func main() {
 	di.SetupServices()
 	var rootCmd = &cobra.Command{
-		Use: "oracle",
+		Use: "client",
 	}
 
 	addWalletcommand := commands.AddWalletCommand{
@@ -26,7 +26,12 @@ func main() {
 		RpcService: di.RpcService(),
 	}
 	addUserCommand := commands.AddUserCommand{
-		UsersRepository: di.UsersRepository(),
+		UsersRepository:    di.UsersRepository(),
+		PasswordManager:    di.GetPasswordManager(),
+		UserKeysRepository: di.GetUserKeysRepository(),
+		UserCertificates:   di.GetUserCertificates(),
+		CertificateService: di.GetCertificateService(),
+		KeysService:        di.GetKeyService(),
 	}
 	usersCommand := commands.UsersCommand{
 		UsersRepository: di.UsersRepository(),
