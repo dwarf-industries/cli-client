@@ -18,35 +18,35 @@ type RegisterService struct {
 	VerificationService interfaces.IdentityVerificationService
 }
 
-func (r *RegisterService) Oracles() ([]models.Oracle, error) {
+func (r *RegisterService) Oracles() ([]models.Node, error) {
 	contractAddress := common.HexToAddress(r.ContractAddr)
 	contract, err := contracts.NewRegister(contractAddress, r.RpcService.GetClient())
 	if err != nil {
 		fmt.Println("Failed to load contract:", err)
-		return []models.Oracle{}, err
+		return []models.Node{}, err
 	}
 
 	oracleResult, err := contract.GetOracles(&bind.CallOpts{})
 	if err != nil {
-		return []models.Oracle{}, nil
+		return []models.Node{}, nil
 	}
 
 	wallet, err := r.WalletService.ActiveWallet()
 	if err != nil {
 		fmt.Println("Failed to retrive credentails")
-		return []models.Oracle{}, err
+		return []models.Node{}, err
 	}
 	auth, err := r.WalletService.NewTransactor(wallet)
 	if err != nil {
 		fmt.Println("Failed to Assign credentails")
-		return []models.Oracle{}, err
+		return []models.Node{}, err
 	}
 
-	var oracles []models.Oracle
+	var oracles []models.Node
 	for _, o := range oracleResult {
 
 		if o.Name == auth.From {
-			oracles = append(oracles, models.Oracle{
+			oracles = append(oracles, models.Node{
 				Name:       o.Name.Hex(),
 				Ip:         o.Ip,
 				Port:       o.Port,
@@ -61,7 +61,7 @@ func (r *RegisterService) Oracles() ([]models.Oracle, error) {
 			continue
 		}
 
-		oracles = append(oracles, models.Oracle{
+		oracles = append(oracles, models.Node{
 			Name:       o.Name.Hex(),
 			Ip:         o.Ip,
 			Port:       o.Port,

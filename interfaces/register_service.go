@@ -3,5 +3,5 @@ package interfaces
 import "client/models"
 
 type RegisterService interface {
-	Oracles() models.Oracle
+	Oracles() models.Node
 }
