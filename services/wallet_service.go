@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"os"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -33,9 +34,14 @@ func (w *WalletService) SetWallet(wallet *string, password *string) (ecdsa.Priva
 	}
 
 	byteSlice := []byte(*wallet)
-	saved, err := w.PasswordManager.Encrypt(byteSlice, []byte(*password))
-	if !saved || err != nil {
+	ciphertext, err := w.PasswordManager.Encrypt(byteSlice, []byte(*password))
+	if ciphertext == nil || err != nil {
 		return ecdsa.PrivateKey{}, err
+	}
+
+	err = os.WriteFile("client_data", *ciphertext, 0600)
+	if err != nil {
+		return ecdsa.PrivateKey{}, fmt.Errorf("failed to write encrypted data to file: %w", err)
 	}
 
 	return *privateKey, nil
