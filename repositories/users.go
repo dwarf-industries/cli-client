@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -58,20 +57,18 @@ func (u *UsersRepository) GetUserById(userId int) (models.User, error) {
 	return user, nil
 }
 
-func (u *UsersRepository) AddUser(certificate *[]byte, name *string) bool {
+func (u *UsersRepository) AddUser(name *string) (int, error) {
 	sql := `
 		INSERT INTO Users
-		(certificate, name, created_at)
-		VALUES ($1, $2, $3)
+		(name, created_at)
+		VALUES ($1, $2)
 	`
 
-	err := u.storage.Exec(&sql, &[]interface{}{
-		hex.EncodeToString(*certificate),
+	return u.storage.ExecReturnID(&sql, &[]interface{}{
 		name,
 		time.Now().UTC(),
 	})
 
-	return err == nil
 }
 
 func (u *UsersRepository) DeleteUser(id int) bool {
