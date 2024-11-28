@@ -13,9 +13,8 @@ type KeysRepository struct {
 
 func (k *KeysRepository) UserKeys(userId *int) (*[]models.UserKey, error) {
 	sql := `
-		SELECT k.id, u.id, k.key_data, k.created_at FROM User_Keys as k
-		JOIN Users as u on k.user_id = u.id
-		WHERE u.id = $1
+		SELECT id, user_id, key_data, created_at FROM User_Keys
+		WHERE user_id = $1
 	`
 
 	query, err := k.storage.Query(&sql, &[]interface{}{
@@ -45,7 +44,7 @@ func (k *KeysRepository) UserKeys(userId *int) (*[]models.UserKey, error) {
 
 func (k *KeysRepository) AddKey(userId *int, keyType *int, data *string) bool {
 	sql := `
-		INSERT INTO User_Keys (key_data, user_id, key_type) VALUES ($1,$2,$3)
+		INSERT INTO User_Keys (key_data, user_id, key_type) VALUES ($1, $2, $3)
 	`
 
 	err := k.storage.Exec(&sql, &[]interface{}{
