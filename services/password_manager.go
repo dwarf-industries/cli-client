@@ -11,30 +11,25 @@ import (
 
 type PasswordManager struct{}
 
-func (p *PasswordManager) Encrypt(plaintext, key []byte) (bool, error) {
+func (p *PasswordManager) Encrypt(plaintext, key []byte) (*[]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return false, fmt.Errorf("failed to create cipher block: %w", err)
+		return nil, fmt.Errorf("failed to create cipher block: %w", err)
 	}
 
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
-		return false, fmt.Errorf("failed to create AES-GCM: %w", err)
+		return nil, fmt.Errorf("failed to create AES-GCM: %w", err)
 	}
 
 	nonce := make([]byte, aesGCM.NonceSize())
 	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return false, fmt.Errorf("failed to generate nonce: %w", err)
+		return nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
 
 	ciphertext := aesGCM.Seal(nonce, nonce, plaintext, nil)
 
-	err = os.WriteFile("oracle_data", ciphertext, 0600)
-	if err != nil {
-		return false, fmt.Errorf("failed to write encrypted data to file: %w", err)
-	}
-
-	return true, nil
+	return &ciphertext, nil
 }
 
 func (p *PasswordManager) LoadFromFile(filename string, password []byte) ([]byte, error) {
@@ -43,10 +38,10 @@ func (p *PasswordManager) LoadFromFile(filename string, password []byte) ([]byte
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	return p.decrypt(file, password)
+	return p.Decrypt(file, password)
 }
 
-func (p *PasswordManager) decrypt(data []byte, key []byte) ([]byte, error) {
+func (p *PasswordManager) Decrypt(data []byte, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cipher block: %w", err)
