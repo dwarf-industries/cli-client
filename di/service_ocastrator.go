@@ -16,6 +16,9 @@ var walletService interfaces.WalletService
 var rpcService interfaces.RpcService
 var storage interfaces.Storage
 var IdentityVerificationService interfaces.IdentityVerificationService
+var passwordManager interfaces.PasswordManager
+var certificateService interfaces.CertificateService
+var keyService interfaces.KeyService
 
 func SetupServices() {
 	err := godotenv.Load(".env")
@@ -34,7 +37,9 @@ func SetupServices() {
 	}
 	storage = setupDatabase()
 	IdentityVerificationService = &services.IdentityService{}
-
+	passwordManager = &services.PasswordManager{}
+	certificateService = &services.CertificateService{}
+	keyService = &services.KeyService{}
 }
 
 func setupDatabase() interfaces.Storage {
@@ -80,8 +85,21 @@ func RpcService() interfaces.RpcService {
 func DatabaseService() interfaces.Storage {
 	return storage
 }
+
 func GetIdentityVerificationService() interfaces.IdentityVerificationService {
 	return IdentityVerificationService
+}
+
+func GetPasswordManager() interfaces.PasswordManager {
+	return passwordManager
+}
+
+func GetCertificateService() interfaces.CertificateService {
+	return certificateService
+}
+
+func GetKeyService() interfaces.KeyService {
+	return keyService
 }
 
 func getExecutablePath() string {
