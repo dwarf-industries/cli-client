@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"golang.org/x/crypto/sha3"
@@ -41,7 +42,7 @@ func (w *WalletService) SetWallet(wallet *string, password *string) (ecdsa.Priva
 }
 
 func (w *WalletService) GetWallet(password *string) (*ecdsa.PrivateKey, error) {
-	wallet, err := w.PasswordManager.LoadFromFile("oracle_data", []byte(*password))
+	wallet, err := w.PasswordManager.LoadFromFile("client_data", []byte(*password))
 	if err != nil {
 		return nil, err
 	}
@@ -143,4 +144,42 @@ func (w *WalletService) GetBalance(wallet *common.Address) big.Int {
 	}
 
 	return *walletBalance
+}
+
+func (r *WalletService) NewTransactor(privateKey *ecdsa.PrivateKey) (*bind.TransactOpts, error) {
+	chainID, err := r.RpcService.GetClient().ChainID(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get network ID: %v", err)
+	}
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create transactor: %v", err)
+	}
+
+	auth.GasLimit = uint64(300000)
+
+	auth.GasPrice, err = r.RpcService.GetClient().SuggestGasPrice(context.Background())
+	if err != nil {
+		auth.GasPrice = big.NewInt(20000000000)
+		fmt.Println("Warning: Failed to suggest gas price, using fallback value")
+	}
+
+	block, err := r.RpcService.GetClient().BlockNumber(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrive current block: %v", err)
+	}
+	nonce, err := r.RpcService.GetClient().NonceAt(context.Background(), auth.From, big.NewInt(int64(block)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get nonce: %v", err)
+	}
+	auth.Nonce = big.NewInt(int64(nonce))
+	fmt.Println("Transaction details:")
+	fmt.Println("ChainID:", chainID)
+	fmt.Println("GasLimit:", auth.GasLimit)
+	fmt.Println("GasPrice:", auth.GasPrice)
+	fmt.Println("Nonce:", auth.Nonce)
+	fmt.Println("Block:", block)
+
+	return auth, nil
 }

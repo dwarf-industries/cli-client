@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -16,4 +17,5 @@ type WalletService interface {
 	SignMessage(message []byte) ([]byte, error)
 	VerifySignature(message []byte, signature []byte, expectedAddress string) (bool, error)
 	GetBalance(wallet *common.Address) big.Int
+	NewTransactor(privateKey *ecdsa.PrivateKey) (*bind.TransactOpts, error)
 }
