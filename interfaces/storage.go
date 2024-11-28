@@ -6,6 +6,7 @@ type Storage interface {
 	Query(sql *string, parameters *[]interface{}) (RowsScanner, error)
 	QuerySingle(sql *string, parameters *[]interface{}) RowScanner
 	Exec(sql *string, parameters *[]interface{}) error
+	ExecReturnID(sql *string, parameters *[]interface{}) (int, error)
 	Open() bool
 	Close() bool
 }
