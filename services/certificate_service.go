@@ -7,6 +7,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -51,17 +52,17 @@ func (c *CertificateService) LoadPrivateKey(keyFile string) (*rsa.PrivateKey, er
 	return privKey, nil
 }
 
-func (c *CertificateService) IssueIdentityCertificate(certFile string, priv *ed25519.PublicKey, pub *ed25519.PrivateKey) (*string, error) {
+func (c *CertificateService) IssueIdentityCertificate(priv *ed25519.PublicKey, pub *ed25519.PrivateKey) (*string, error) {
 
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(time.Now().UnixNano()),
 		Subject: pkix.Name{
-			Organization:  []string{"Example Corp"},
-			Country:       []string{"US"},
-			Province:      []string{"California"},
-			Locality:      []string{"San Francisco"},
-			StreetAddress: []string{"Market Street"},
-			PostalCode:    []string{"94103"},
+			Organization:  []string{"Shadowkeep"},
+			Country:       []string{"II"},
+			Province:      []string{"World Wide"},
+			Locality:      []string{"Who knows"},
+			StreetAddress: []string{"Easy Street"},
+			PostalCode:    []string{"1"},
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
@@ -77,23 +78,22 @@ func (c *CertificateService) IssueIdentityCertificate(certFile string, priv *ed2
 	}
 
 	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
-	saveToFile(certFile, certPEM)
 
-	log.Printf("Identity certificate and key saved to %s ", certFile)
-
-	return &certFile, nil
+	log.Printf("Identity certificate and key saved to ")
+	pemHex := hex.EncodeToString(certPEM)
+	return &pemHex, nil
 }
 
-func (c *CertificateService) IssueEncryptionCertificate(certFile *string, priv *rsa.PrivateKey) (*string, error) {
+func (c *CertificateService) IssueEncryptionCertificate(priv *rsa.PrivateKey) (*string, error) {
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(time.Now().UnixNano()),
 		Subject: pkix.Name{
-			Organization:  []string{"Example Corp"},
-			Country:       []string{"US"},
-			Province:      []string{"California"},
-			Locality:      []string{"San Francisco"},
-			StreetAddress: []string{"Market Street"},
-			PostalCode:    []string{"94103"},
+			Organization:  []string{"Shadowkeep"},
+			Country:       []string{"II"},
+			Province:      []string{"World Wide"},
+			Locality:      []string{"Who knows"},
+			StreetAddress: []string{"Easy Street"},
+			PostalCode:    []string{"1"},
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
@@ -109,11 +109,10 @@ func (c *CertificateService) IssueEncryptionCertificate(certFile *string, priv *
 	}
 
 	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
-	saveToFile(*certFile, certPEM)
 
-	log.Printf("Encryption certificate and key saved to %s", *certFile)
-
-	return certFile, nil
+	log.Printf("Encryption certificate and key saved to")
+	pemHex := hex.EncodeToString(certPEM)
+	return &pemHex, nil
 }
 
 func (c *CertificateService) EncryptWithCertificate(cert *x509.Certificate, plaintext []byte) ([]byte, error) {
