@@ -79,6 +79,26 @@ func (s *Storage) Exec(sql *string, parameters *[]interface{}) error {
 	return err
 }
 
+func (s *Storage) ExecReturnID(sql *string, parameters *[]interface{}) (int, error) {
+	result, err := s.db.Exec(*sql, *parameters...)
+	if err != nil {
+		return 0, err
+	}
+
+	lastInsertID, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	affected, err := result.RowsAffected()
+
+	if affected == 0 {
+		return 0, errors.New("no rows affected")
+	}
+
+	return int(lastInsertID), err
+}
+
 func (s *Storage) Close() bool {
 	if s.db != nil {
 		s.db.Close()
