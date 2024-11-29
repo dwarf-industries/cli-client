@@ -33,6 +33,11 @@ func main() {
 		CertificateService: di.GetCertificateService(),
 		KeysService:        di.GetKeyService(),
 	}
+	importUserCommand := commands.ImportUsersCommand{
+		UsersRepository:        di.UsersRepository(),
+		PasswordManager:        di.GetPasswordManager(),
+		CertificatesRepository: di.GetUserCertificates(),
+	}
 	usersCommand := commands.UsersCommand{
 		UsersRepository: di.UsersRepository(),
 	}
@@ -42,6 +47,7 @@ func main() {
 	rootCmd.AddCommand(rpcCommand.Executable())
 	rootCmd.AddCommand(addUserCommand.Executable())
 	rootCmd.AddCommand(usersCommand.Executable())
+	rootCmd.AddCommand(importUserCommand.Executable())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

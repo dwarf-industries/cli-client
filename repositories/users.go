@@ -39,13 +39,36 @@ func (u *UsersRepository) GetAllUsers() ([]models.User, error) {
 	return users, nil
 }
 
+func (u *UsersRepository) GetUserByName(name *string) (models.User, error) {
+	sql := `
+		SELECT * FROM Users
+		WHERE name = $1
+	`
+
+	query := u.storage.QuerySingle(&sql, &[]interface{}{
+		&name,
+	})
+
+	var user models.User
+	err := query.Scan(&user.Id, &user.Certificate, &user.Name, &user.CreatedAt)
+	if err != nil {
+		fmt.Println("Failed to parse user, aborting!")
+		return models.User{}, err
+	}
+
+	return user, nil
+
+}
+
 func (u *UsersRepository) GetUserById(userId int) (models.User, error) {
 	sql := `
 		SELECT * FROM Users
 		WHERE id = $1
 	`
 
-	query := u.storage.QuerySingle(&sql, &[]interface{}{})
+	query := u.storage.QuerySingle(&sql, &[]interface{}{
+		&userId,
+	})
 
 	var user models.User
 	err := query.Scan(&user.Id, &user.Certificate, &user.Name, &user.CreatedAt)
