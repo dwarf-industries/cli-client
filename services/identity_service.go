@@ -3,10 +3,12 @@ package services
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"client/interfaces"
 )
@@ -16,7 +18,8 @@ type IdentityService struct {
 }
 
 func (i *IdentityService) Verify(ip string, expected string) bool {
-	challange, err := i.generateRandomBytes(512)
+	//Can't have more then 32 bytes for ETH
+	challange, err := i.generateRandomBytes(32)
 	if err != nil {
 		fmt.Print("failed to generate challange aborting")
 		return false
@@ -27,7 +30,12 @@ func (i *IdentityService) Verify(ip string, expected string) bool {
 		return false
 	}
 
-	req, err := http.NewRequest("POST", ip, bytes.NewBuffer(jsonData))
+	uri := strings.Join([]string{
+		ip,
+		"/v1/identity/self",
+	}, "")
+
+	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Printf("Error creating request: %v\n", err)
 		return false
@@ -49,8 +57,22 @@ func (i *IdentityService) Verify(ip string, expected string) bool {
 
 	fmt.Printf("Response status: %s\n", resp.Status)
 
-	i.WalletService.VerifySignature(challange, []byte(body), expected)
-	return false
+	var hexData string
+	if err := json.Unmarshal(body, &hexData); err != nil {
+		return false
+	}
+
+	signatureBytes, err := hex.DecodeString(hexData)
+	if err != nil {
+		return false
+	}
+	verified, err := i.WalletService.VerifySignature(challange, signatureBytes, expected)
+
+	if err != nil {
+		return false
+	}
+
+	return verified
 }
 
 func (i *IdentityService) generateRandomBytes(size int) ([]byte, error) {
