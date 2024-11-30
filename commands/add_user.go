@@ -13,6 +13,7 @@ import (
 )
 
 type AddUserCommand struct {
+	Storage            interfaces.Storage
 	PasswordManager    interfaces.PasswordManager
 	UsersRepository    repositories.UsersRepository
 	UserKeysRepository repositories.KeysRepository
@@ -37,6 +38,17 @@ func (u *AddUserCommand) Execute(name *string) {
 	fmt.Println("Please enter your account password")
 	var password string
 	fmt.Scan(&password)
+
+	ok := u.PasswordManager.Match(&password)
+
+	if !ok {
+		fmt.Println("Wrong account password, aborting!")
+		os.Exit(1)
+		return
+	}
+
+	u.Storage.Open()
+	defer u.Storage.Close()
 
 	created, err := u.UsersRepository.AddUser(name)
 
