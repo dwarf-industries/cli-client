@@ -12,6 +12,7 @@ import (
 
 func main() {
 	di.SetupServices()
+	di.Setup()
 	var rootCmd = &cobra.Command{
 		Use: "client",
 	}
@@ -26,6 +27,7 @@ func main() {
 		RpcService: di.RpcService(),
 	}
 	addUserCommand := commands.AddUserCommand{
+		Storage:            di.DatabaseService(),
 		UsersRepository:    di.UsersRepository(),
 		PasswordManager:    di.GetPasswordManager(),
 		UserKeysRepository: di.GetUserKeysRepository(),
@@ -37,6 +39,7 @@ func main() {
 		UsersRepository:        di.UsersRepository(),
 		PasswordManager:        di.GetPasswordManager(),
 		CertificatesRepository: di.GetUserCertificates(),
+		Storage:                di.DatabaseService(),
 	}
 	usersCommand := commands.UsersCommand{
 		UsersRepository: di.UsersRepository(),
