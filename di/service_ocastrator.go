@@ -27,17 +27,23 @@ func SetupServices() {
 	}
 
 	rpc := getRpc()
+	storage = setupDatabase()
 
 	rpcService = &services.RpcService{}
 	rpcService.SetClient(rpc)
-
+	passwordManager = &services.PasswordManager{
+		Storage: storage,
+	}
 	walletService = &services.WalletService{
-		PasswordManager: &services.PasswordManager{},
+		Storage:         storage,
+		PasswordManager: passwordManager,
 		RpcService:      rpcService,
 	}
-	storage = setupDatabase()
 	IdentityVerificationService = &services.IdentityService{}
-	passwordManager = &services.PasswordManager{}
+	configured, err := passwordManager.LoadHash()
+	if !configured || err != nil {
+		fmt.Println("It appears that your account is not setup, please use 'client setup --help for more information'")
+	}
 	certificateService = &services.CertificateService{}
 	keyService = &services.KeyService{}
 }
