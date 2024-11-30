@@ -17,6 +17,7 @@ import (
 )
 
 type ImportUsersCommand struct {
+	Storage                interfaces.Storage
 	UsersRepository        repositories.UsersRepository
 	CertificatesRepository repositories.Certificate
 	PasswordManager        interfaces.PasswordManager
@@ -36,6 +37,8 @@ func (i *ImportUsersCommand) Executable() *cobra.Command {
 }
 
 func (i *ImportUsersCommand) Execute(contactDir *string) {
+	i.Storage.Open()
+	defer i.Storage.Close()
 	fmt.Println("Please enter your password!")
 	fmt.Scanf(i.password)
 
