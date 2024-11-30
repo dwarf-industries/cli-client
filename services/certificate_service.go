@@ -139,16 +139,3 @@ func (c *CertificateService) DecryptWithPrivateKey(privKey *rsa.PrivateKey, ciph
 	}
 	return plaintext, nil
 }
-
-func saveToFile(filename string, data []byte) {
-	file, err := os.Create(filename)
-	if err != nil {
-		log.Fatalf("Failed to create file %s: %v", filename, err)
-	}
-	defer file.Close()
-	_, err = file.Write(data)
-	if err != nil {
-		log.Fatalf("Failed to write to file %s: %v", filename, err)
-	}
-	log.Printf("Saved %s", filename)
-}
