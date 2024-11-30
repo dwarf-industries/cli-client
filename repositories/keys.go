@@ -42,7 +42,8 @@ func (k *KeysRepository) UserKeys(userId *int) (*[]models.UserKey, error) {
 	return &userKeys, nil
 }
 
-func (k *KeysRepository) AddKey(userId *int, keyType *int, data *string) bool {
+// KeyType 1 Encryption Private Key, 2 Identity Public Key, 3 Identity Private Key
+func (k *KeysRepository) AddKey(userId *int, keyType int, data *string) bool {
 	sql := `
 		INSERT INTO User_Keys (key_data, user_id, key_type) VALUES ($1, $2, $3)
 	`

@@ -90,9 +90,8 @@ func (i *ImportUsersCommand) importUser(user models.UserContract) {
 		return
 	}
 
-	identityCertificateType := 2
 	identityCert := hex.EncodeToString(*identityPublic)
-	saveCertificate := i.CertificatesRepository.AddCertificate(&created, &identityCertificateType, &identityCert)
+	saveCertificate := i.CertificatesRepository.AddCertificate(&created, 2, &identityCert)
 
 	if !saveCertificate {
 		fmt.Println("Failed to save identity certificate aborting!")
@@ -106,8 +105,7 @@ func (i *ImportUsersCommand) importUser(user models.UserContract) {
 		return
 	}
 	encryptCert := hex.EncodeToString(*encryptionCertificate)
-	encryptionCertificateType := 1
-	saveCertificate = i.CertificatesRepository.AddCertificate(&created, &encryptionCertificateType, &encryptCert)
+	saveCertificate = i.CertificatesRepository.AddCertificate(&created, 1, &encryptCert)
 
 	if !saveCertificate {
 		fmt.Println("Failed to save encryption certificate aborting!")

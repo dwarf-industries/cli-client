@@ -47,7 +47,7 @@ func (c *Certificate) UserCertificates(userId *int) *[]models.UserCertificate {
 	return &certificates
 }
 
-func (c *Certificate) AddCertificate(userId *int, certificateType *int, data *string) bool {
+func (c *Certificate) AddCertificate(userId *int, certificateType int, data *string) bool {
 	sql := `
 		INSERT INTO User_Certificates (user_id,certificate_type,certificate_data)
 		VALUES ($1,$2,$3)

@@ -58,8 +58,7 @@ func (u *AddUserCommand) Execute(name *string) {
 	}
 
 	encryptedHexBytesHex := hex.EncodeToString(*encryptedHexBytes)
-	ed25515PublicType := 2
-	u.UserKeysRepository.AddKey(&created, &ed25515PublicType, &encryptedHexBytesHex)
+	u.UserKeysRepository.AddKey(&created, 2, &encryptedHexBytesHex)
 
 	encryptPrivKey, err := u.PasswordManager.Encrypt(*priv, []byte(password))
 	if err != nil {
@@ -67,8 +66,7 @@ func (u *AddUserCommand) Execute(name *string) {
 		return
 	}
 	encryptPrivKeyHex := hex.EncodeToString(*encryptPrivKey)
-	ed25515PrivateType := 3
-	u.UserKeysRepository.AddKey(&created, &ed25515PrivateType, &encryptPrivKeyHex)
+	u.UserKeysRepository.AddKey(&created, 3, &encryptPrivKeyHex)
 
 	cert, err := u.CertificateService.IssueIdentityCertificate(pub, priv)
 
@@ -77,8 +75,7 @@ func (u *AddUserCommand) Execute(name *string) {
 		return
 	}
 
-	identitiyCertificateType := 1
-	addUserCertificate := u.UserCertificates.AddCertificate(&created, &identitiyCertificateType, cert)
+	addUserCertificate := u.UserCertificates.AddCertificate(&created, 2, cert)
 
 	if !addUserCertificate {
 		fmt.Println("Failed to save user certificate aborting!")
@@ -100,8 +97,7 @@ func (u *AddUserCommand) Execute(name *string) {
 		return
 	}
 	encryptionPkHex := hex.EncodeToString(*encryptionPk)
-	encryptionKeyType := 1
-	keySaved := u.UserKeysRepository.AddKey(&created, &encryptionKeyType, &encryptionPkHex)
+	keySaved := u.UserKeysRepository.AddKey(&created, 1, &encryptionPkHex)
 
 	if !keySaved {
 		fmt.Println("Failed to save key to the database, aborting!")
@@ -114,8 +110,7 @@ func (u *AddUserCommand) Execute(name *string) {
 		fmt.Println("Failed to create encryption certificate aborting!")
 		return
 	}
-	encryptionCertificateType := 2
-	certificateCreated := u.UserCertificates.AddCertificate(&created, &encryptionCertificateType, encryptionCertificate)
+	certificateCreated := u.UserCertificates.AddCertificate(&created, 1, encryptionCertificate)
 
 	if !certificateCreated {
 		fmt.Println("Failed to save encryption certificate aborting!")
