@@ -44,6 +44,11 @@ func main() {
 	usersCommand := commands.UsersCommand{
 		UsersRepository: di.UsersRepository(),
 	}
+	nodesCommand := commands.NodesCommand{
+		RegisterService: di.GetRegisterService(),
+	}
+
+	nodesCommand.Execute()
 
 	rootCmd.AddCommand(addWalletcommand.Executable())
 	rootCmd.AddCommand(generateWalletCommand.Executable())
@@ -51,6 +56,7 @@ func main() {
 	rootCmd.AddCommand(addUserCommand.Executable())
 	rootCmd.AddCommand(usersCommand.Executable())
 	rootCmd.AddCommand(importUserCommand.Executable())
+	rootCmd.AddCommand(nodesCommand.Executable())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
