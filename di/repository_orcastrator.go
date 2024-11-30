@@ -9,11 +9,11 @@ var userKeys repositories.KeysRepository
 var userCertificates repositories.Certificate
 
 func Setup() {
-	users := repositories.UsersRepository{}
+	users = repositories.UsersRepository{}
 	users.Setup(DatabaseService())
-	userKeys := repositories.KeysRepository{}
+	userKeys = repositories.KeysRepository{}
 	userKeys.Init(DatabaseService())
-	userCertificates := repositories.Certificate{}
+	userCertificates = repositories.Certificate{}
 	userCertificates.Init(DatabaseService())
 }
 
