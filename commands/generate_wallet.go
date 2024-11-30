@@ -19,7 +19,7 @@ func (g *GenerateWalletCommand) Executable() *cobra.Command {
 	return &cobra.Command{
 		Use:   "new-wallet [password]",
 		Short: "Generates a new empty wallet",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			password := args[0]
 			g.Execute(&password)
