@@ -151,28 +151,13 @@ func (w *WalletService) GetAddressForPrivateKey(key *ecdsa.PrivateKey) string {
 }
 
 func (w *WalletService) VerifySignature(message []byte, signature []byte, expectedAddress string) (bool, error) {
-	if len(signature) != 65 {
-		return false, fmt.Errorf("invalid signature length: expected 65 bytes, got %d", len(signature))
-	}
-
-	_, _, v := signature[:32], signature[32:64], signature[64]
-	if v < 27 {
-		v += 27
-	}
-
-	if v != 27 && v != 28 {
-		return false, fmt.Errorf("invalid recovery ID: %d", v)
-	}
-
 	hash := crypto.Keccak256Hash([]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(message), message)))
-
-	publicKey, err := crypto.SigToPub(hash.Bytes(), append(signature[:64], v-27))
+	publicKey, err := crypto.SigToPub(hash.Bytes(), signature[:65])
 	if err != nil {
 		return false, fmt.Errorf("failed to recover public key: %v", err)
 	}
 
 	recoveredAddress := crypto.PubkeyToAddress(*publicKey).Hex()
-
 	return recoveredAddress == expectedAddress, nil
 }
 
