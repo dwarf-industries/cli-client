@@ -4,9 +4,11 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,6 +19,7 @@ import (
 )
 
 type WalletService struct {
+	Storage         interfaces.Storage
 	PasswordManager interfaces.PasswordManager
 	RpcService      interfaces.RpcService
 	activeWallet    *ecdsa.PrivateKey
@@ -27,9 +30,23 @@ func (w *WalletService) NewWallet() (*ecdsa.PrivateKey, error) {
 }
 
 func (w *WalletService) SetWallet(wallet *string, password *string) (ecdsa.PrivateKey, error) {
+	w.Storage.Open()
+	defer w.Storage.Close()
+	ok := w.PasswordManager.Match(password)
+	if !ok {
+		fmt.Println("Account password setup, please provide the correct password in order to change it")
+		fmt.Println("Wrong account password aborting!")
+		os.Exit(1)
+	}
+
+	configured := w.PasswordManager.SetupPassword(password)
+
+	if !configured {
+		return ecdsa.PrivateKey{}, errors.New("failed to setup password, aborting")
+	}
+
 	privateKey, err := crypto.HexToECDSA(*wallet)
 	if err != nil {
-
 		return ecdsa.PrivateKey{}, err
 	}
 
@@ -38,8 +55,15 @@ func (w *WalletService) SetWallet(wallet *string, password *string) (ecdsa.Priva
 	if ciphertext == nil || err != nil {
 		return ecdsa.PrivateKey{}, err
 	}
+	savePassword := `
+		UPDATE Accounts
+		SET key = $1
+	`
+	ciphertextHex := hex.EncodeToString(*ciphertext)
+	err = w.Storage.Exec(&savePassword, &[]interface{}{
+		ciphertextHex,
+	})
 
-	err = os.WriteFile("client_data", *ciphertext, 0600)
 	if err != nil {
 		return ecdsa.PrivateKey{}, fmt.Errorf("failed to write encrypted data to file: %w", err)
 	}
@@ -48,12 +72,26 @@ func (w *WalletService) SetWallet(wallet *string, password *string) (ecdsa.Priva
 }
 
 func (w *WalletService) GetWallet(password *string) (*ecdsa.PrivateKey, error) {
-	wallet, err := w.PasswordManager.LoadFromFile("client_data", []byte(*password))
+	w.Storage.Open()
+	defer w.Storage.Close()
+
+	sql := `
+		SELECT key FROM Accounts
+	`
+	row := w.Storage.QuerySingle(&sql, &[]interface{}{})
+
+	var wallet string
+	err := row.Scan(&wallet)
 	if err != nil {
 		return nil, err
 	}
 
-	privateKey, err := crypto.HexToECDSA(string(wallet))
+	walletBytes, err := hex.DecodeString(wallet)
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey, err := crypto.HexToECDSA(string(walletBytes))
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -105,7 +143,11 @@ func (w *WalletService) GetAddressForPrivateKey(key *ecdsa.PrivateKey) string {
 
 	address := publicKeyHash[len(publicKeyHash)-20:]
 	addressHex := hex.EncodeToString(address)
-	return addressHex
+	etherAddress := strings.Join([]string{
+		"0x",
+		addressHex,
+	}, "")
+	return etherAddress
 }
 
 func (w *WalletService) VerifySignature(message []byte, signature []byte, expectedAddress string) (bool, error) {
