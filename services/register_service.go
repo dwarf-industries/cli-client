@@ -31,31 +31,8 @@ func (r *RegisterService) Oracles() ([]models.Node, error) {
 		return []models.Node{}, nil
 	}
 
-	wallet, err := r.WalletService.ActiveWallet()
-	if err != nil {
-		fmt.Println("Failed to retrive credentails")
-		return []models.Node{}, err
-	}
-	auth, err := r.WalletService.NewTransactor(wallet)
-	if err != nil {
-		fmt.Println("Failed to Assign credentails")
-		return []models.Node{}, err
-	}
-
 	var oracles []models.Node
 	for _, o := range oracleResult {
-
-		if o.Name == auth.From {
-			oracles = append(oracles, models.Node{
-				Name:       o.Name.Hex(),
-				Ip:         o.Ip,
-				Port:       o.Port,
-				Reputation: *o.Reputation,
-			})
-			continue
-		}
-
-		//Verify that the node is running with the expected public address
 		verified := r.VerificationService.Verify(o.Ip, o.Name.Hex())
 		if !verified {
 			continue
