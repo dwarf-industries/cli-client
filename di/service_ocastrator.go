@@ -19,6 +19,7 @@ var IdentityVerificationService interfaces.IdentityVerificationService
 var passwordManager interfaces.PasswordManager
 var certificateService interfaces.CertificateService
 var keyService interfaces.KeyService
+var registerService interfaces.RegisterService
 
 func SetupServices() {
 	err := godotenv.Load(".env")
@@ -39,13 +40,21 @@ func SetupServices() {
 		PasswordManager: passwordManager,
 		RpcService:      rpcService,
 	}
-	IdentityVerificationService = &services.IdentityService{}
+	IdentityVerificationService = &services.IdentityService{
+		WalletService: walletService,
+	}
 	configured, err := passwordManager.LoadHash()
 	if !configured || err != nil {
 		fmt.Println("It appears that your account is not setup, please use 'client setup --help for more information'")
 	}
 	certificateService = &services.CertificateService{}
 	keyService = &services.KeyService{}
+	registerService = &services.RegisterService{
+		WalletService:       walletService,
+		RpcService:          rpcService,
+		ContractAddr:        os.Getenv("CONTRACT_ADDRESS"),
+		VerificationService: IdentityVerificationService,
+	}
 }
 
 func setupDatabase() interfaces.Storage {
@@ -106,6 +115,10 @@ func GetCertificateService() interfaces.CertificateService {
 
 func GetKeyService() interfaces.KeyService {
 	return keyService
+}
+
+func GetRegisterService() interfaces.RegisterService {
+	return registerService
 }
 
 func getExecutablePath() string {
