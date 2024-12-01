@@ -39,6 +39,6 @@ CREATE TABLE IF NOT EXISTS Accounts (
     password TEXT
 );
 
-CREATE TABLE IF NOT EXISTS Nodes {
+CREATE TABLE IF NOT EXISTS Nodes (
     name TEXT NOT NULL
-}
+);
