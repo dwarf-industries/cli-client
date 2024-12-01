@@ -21,58 +21,62 @@ func InitialModel(nodes []models.Node, activeNodes map[string]struct{}) ListView
 	}
 }
 
-func (m ListView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (l *ListView) GetSelectedNodes() map[string]struct{} {
+	return l.selected
+}
+
+func (l ListView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
-			return m, tea.Quit
+			return l, tea.Quit
 		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
+			if l.cursor > 0 {
+				l.cursor--
 			}
 		case "down", "j":
-			if m.cursor < len(m.choices)-1 {
-				m.cursor++
+			if l.cursor < len(l.choices)-1 {
+				l.cursor++
 			}
 		case "a":
-			for _, n := range m.choices {
-				if _, ok := m.selected[n.Name]; !ok {
-					m.selected[n.Name] = struct{}{}
+			for _, n := range l.choices {
+				if _, ok := l.selected[n.Name]; !ok {
+					l.selected[n.Name] = struct{}{}
 				}
 			}
 		case "d":
-			m.selected = make(map[string]struct{})
+			l.selected = make(map[string]struct{})
 		case "enter", " ":
-			_, ok := m.selected[m.choices[m.cursor].Name]
+			_, ok := l.selected[l.choices[l.cursor].Name]
 			if ok {
-				delete(m.selected, m.choices[m.cursor].Name)
+				delete(l.selected, l.choices[l.cursor].Name)
 			} else {
-				m.selected[m.choices[m.cursor].Name] = struct{}{}
+				l.selected[l.choices[l.cursor].Name] = struct{}{}
 			}
 		}
 	}
 
-	return m, nil
+	return l, nil
 }
 
-func (m ListView) Init() tea.Cmd {
+func (l ListView) Init() tea.Cmd {
 
 	return nil
 }
 
-func (m ListView) View() string {
+func (l ListView) View() string {
 	s := "Please select the list of active nodes use for interaction with the network\n\n"
 
-	for i, choice := range m.choices {
+	for i, choice := range l.choices {
 
 		cursor := " "
-		if m.cursor == i {
+		if l.cursor == i {
 			cursor = ">"
 		}
 
 		checked := " "
-		if _, ok := m.selected[choice.Name]; ok {
+		if _, ok := l.selected[choice.Name]; ok {
 			checked = "x"
 		}
 
