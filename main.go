@@ -45,7 +45,9 @@ func main() {
 		UsersRepository: di.UsersRepository(),
 	}
 	nodesCommand := commands.NodesCommand{
+		Storage:         di.DatabaseService(),
 		RegisterService: di.GetRegisterService(),
+		NodesRepository: di.GetNodesRepository(),
 	}
 
 	nodesCommand.Execute()
