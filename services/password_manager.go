@@ -10,6 +10,8 @@ import (
 	"io"
 	"os"
 
+	"golang.org/x/term"
+
 	"client/interfaces"
 )
 
@@ -119,4 +121,15 @@ func (p *PasswordManager) LoadHash() (bool, error) {
 
 	p.password = dbHash
 	return true, nil
+}
+
+func (p *PasswordManager) Input() *string {
+	passwordBytes, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		fmt.Println("\nError reading password:", err)
+		return nil
+	}
+	password := string(passwordBytes)
+
+	return &password
 }

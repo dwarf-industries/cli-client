@@ -37,7 +37,8 @@ func (u *AddUserCommand) Executable() *cobra.Command {
 func (u *AddUserCommand) Execute(name *string) {
 	fmt.Println("Please enter your account password")
 	var password string
-	fmt.Scan(&password)
+	passwordInput := u.PasswordManager.Input()
+	password = *passwordInput
 
 	ok := u.PasswordManager.Match(&password)
 

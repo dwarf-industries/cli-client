@@ -7,4 +7,5 @@ type PasswordManager interface {
 	SetupPassword(password *string) bool
 	Match(password *string) bool
 	LoadHash() (bool, error)
+	Input() *string
 }

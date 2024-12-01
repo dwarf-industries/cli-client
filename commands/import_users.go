@@ -39,8 +39,10 @@ func (i *ImportUsersCommand) Executable() *cobra.Command {
 func (i *ImportUsersCommand) Execute(contactDir *string) {
 	i.Storage.Open()
 	defer i.Storage.Close()
+
 	fmt.Println("Please enter your password!")
-	fmt.Scanf(i.password)
+	passwordInput := i.PasswordManager.Input()
+	i.password = *passwordInput
 
 	files, err := os.ReadDir(*contactDir)
 	if err != nil {
