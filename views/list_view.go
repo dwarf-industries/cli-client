@@ -2,22 +2,36 @@ package views
 
 import (
 	"fmt"
+	"math/big"
+	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 
+	"client/contracts"
+	"client/converters"
+	"client/di"
 	"client/models"
 )
 
 type ListView struct {
-	choices  []models.Node
-	cursor   int
-	selected map[string]struct{}
+	choices   []models.Node
+	cursor    int
+	selected  map[string]struct{}
+	feeSetter *contracts.FeeSetter
 }
 
 func InitialModel(nodes []models.Node, activeNodes map[string]struct{}) ListView {
+	contractAddress := common.HexToAddress(os.Getenv("FEE_SETTER"))
+	feeContract, err := contracts.NewFeeSetter(contractAddress, di.RpcService().GetClient())
+	if err != nil {
+		panic("Failed to initialize fee contract")
+	}
 	return ListView{
-		choices:  nodes,
-		selected: activeNodes,
+		choices:   nodes,
+		selected:  activeNodes,
+		feeSetter: feeContract,
 	}
 }
 
@@ -67,9 +81,8 @@ func (l ListView) Init() tea.Cmd {
 
 func (l ListView) View() string {
 	s := "Please select the list of active nodes use for interaction with the network\n\n"
-
+	var num int
 	for i, choice := range l.choices {
-
 		cursor := " "
 		if l.cursor == i {
 			cursor = ">"
@@ -77,12 +90,20 @@ func (l ListView) View() string {
 
 		checked := " "
 		if _, ok := l.selected[choice.Name]; ok {
+			num++
 			checked = "x"
 		}
 
 		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.Name)
 	}
+	cost, err := l.feeSetter.GetCostPerKylobyte(&bind.CallOpts{})
+	if err != nil {
+		fmt.Println("failed to get cost per kylobyte fee from the network!")
+	}
 
-	s += "\nControls:\n'q' to quit,\n'a' to select all\n'd' to deselect all \n"
+	estimatedPrice := big.NewInt(1).Mul(cost, big.NewInt(int64(num)))
+	formated := converters.WeiToEth(estimatedPrice)
+	priceFormat := fmt.Sprintf("%s  %s\n", "\nControls:\n'q' to quit,\n'a' to select all\n'd' to deselect all \n", formated.String())
+	s += priceFormat
 	return s
 }
