@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fatih/color"
-	"github.com/jedib0t/go-pretty/table"
 	"github.com/spf13/cobra"
 
 	"client/interfaces"
+	"client/views"
 )
 
 type NodesCommand struct {
@@ -20,29 +21,35 @@ func (n *NodesCommand) Executable() *cobra.Command {
 		Use:   "nodes",
 		Short: "Shows a list of available nodes",
 		Run: func(cmd *cobra.Command, args []string) {
+			if err := n.Execute(); err != nil {
+				warning := color.New(color.FgRed, color.Bold).SprintFunc()
+				fmt.Println(warning("Failed to execute nodes command:", err))
+				os.Exit(1)
+			}
 		},
 	}
 }
 
-func (n *NodesCommand) Execute() {
+func (n *NodesCommand) Execute() error {
 	nodes, err := n.RegisterService.Oracles()
 	if err != nil {
 		warning := color.New(color.FgRed, color.Bold).SprintFunc()
-		fmt.Println(warning("Failed to retrive a list of nodes"))
+		fmt.Println(warning("Failed to retrieve a list of nodes"))
+		return err
+	}
 
+	if len(nodes) == 0 {
+		fmt.Println("No nodes found.")
+		return nil
+	}
+
+	activeNodes := make(map[string]struct{})
+	choiceList := views.InitialModel(nodes, activeNodes)
+
+	p := tea.NewProgram(choiceList)
+	if _, err := p.Run(); err != nil {
+		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)
 	}
-
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	warning := color.New(color.FgGreen, color.Bold).SprintFunc()
-	fmt.Println(warning("Nodes loaded."))
-	t.AppendHeader(table.Row{"Node ID", "IP", "Reputation"})
-
-	for _, node := range nodes {
-		t.AppendRow(table.Row{node.Name, node.Ip, node.Reputation.Int64()})
-		t.Render()
-	}
-
-	os.Exit(0)
+	return nil
 }
