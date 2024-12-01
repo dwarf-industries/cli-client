@@ -7,6 +7,7 @@ import (
 var users repositories.UsersRepository
 var userKeys repositories.KeysRepository
 var userCertificates repositories.Certificate
+var nodesRepository repositories.NodesRepository
 
 func Setup() {
 	users = repositories.UsersRepository{}
@@ -15,6 +16,8 @@ func Setup() {
 	userKeys.Init(DatabaseService())
 	userCertificates = repositories.Certificate{}
 	userCertificates.Init(DatabaseService())
+	nodesRepository = repositories.NodesRepository{}
+	nodesRepository.Init(DatabaseService())
 }
 
 func UsersRepository() repositories.UsersRepository {
@@ -27,4 +30,8 @@ func GetUserKeysRepository() repositories.KeysRepository {
 
 func GetUserCertificates() repositories.Certificate {
 	return userCertificates
+}
+
+func GetNodesRepository() repositories.NodesRepository {
+	return nodesRepository
 }
