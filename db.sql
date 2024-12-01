@@ -38,3 +38,7 @@ CREATE TABLE IF NOT EXISTS Accounts (
     key TEXT,
     password TEXT
 );
+
+CREATE TABLE IF NOT EXISTS Nodes {
+    name TEXT NOT NULL
+}
