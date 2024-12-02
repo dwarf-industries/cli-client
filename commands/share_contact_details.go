@@ -27,8 +27,8 @@ type ShareContactDetails struct {
 
 func (u *ShareContactDetails) Executable() *cobra.Command {
 	return &cobra.Command{
-		Use:   "add-user [name]",
-		Short: "Add a new user to the contact list",
+		Use:   "generate-identity [name]",
+		Short: "Generates contact details that can be exported and shared, allowing another client to import them and establish communication with the current user.",
 		Args:  cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			name := args[0]

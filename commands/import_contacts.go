@@ -23,8 +23,8 @@ type ImportContactsCommand struct {
 
 func (u *ImportContactsCommand) Executable() *cobra.Command {
 	return &cobra.Command{
-		Use:   "add-user [directory]",
-		Short: "Add a new user to the contact list located from path",
+		Use:   "import-users [directory]",
+		Short: "Add a new users to the contact list located from directory path",
 		Args:  cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			path := args[0]
