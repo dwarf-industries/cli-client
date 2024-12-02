@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bufio"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -9,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"syscall"
 
 	"golang.org/x/term"
 
@@ -124,12 +126,50 @@ func (p *PasswordManager) LoadHash() (bool, error) {
 }
 
 func (p *PasswordManager) Input() *string {
-	passwordBytes, err := term.ReadPassword(int(os.Stdin.Fd()))
-	if err != nil {
-		fmt.Println("\nError reading password:", err)
-		return nil
+	fmt.Print("Enter password: ")
+
+	password := ""
+	for {
+		char, err := readSingleChar()
+		if err != nil {
+			fmt.Println("\nError reading password:", err)
+			return nil
+		}
+
+		if char == '\n' || char == '\r' {
+			fmt.Println()
+			break
+		}
+
+		if char == 8 || char == 127 {
+			if len(password) > 0 {
+
+				password = password[:len(password)-1]
+				fmt.Print("\b \b")
+			}
+			continue
+		}
+
+		password += string(char)
+		fmt.Print("*")
 	}
-	password := string(passwordBytes)
 
 	return &password
+}
+
+func readSingleChar() (byte, error) {
+	fd := int(syscall.Stdin)
+	oldState, err := term.MakeRaw(fd)
+	if err != nil {
+		return 0, err
+	}
+	defer term.Restore(fd, oldState)
+
+	reader := bufio.NewReader(os.Stdin)
+	char, err := reader.ReadByte()
+	if err != nil {
+		return 0, err
+	}
+
+	return char, nil
 }
