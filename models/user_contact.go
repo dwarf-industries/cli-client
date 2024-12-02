@@ -1,7 +1,7 @@
 package models
 
 type UserContact struct {
-	Name                  string
+	OrderSecret           string
 	Identity              string
 	EncryptionCertificate string
 }

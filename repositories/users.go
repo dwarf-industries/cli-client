@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -26,13 +27,19 @@ func (u *UsersRepository) GetAllUsers() ([]models.User, error) {
 
 	var users []models.User
 	for query.Next() {
+		var identityEnc string
+		var certificateEnc string
+		var orderSecret string
+		var createdTime string
 		var user models.User
-		err := query.Scan(&user.Id, &user.Certificate, &user.Name, &user.CreatedAt)
+		err := query.Scan(&user.Id, &user.Name, &identityEnc, &certificateEnc, &orderSecret, &createdTime)
 		if err != nil {
 			fmt.Println("Failed to parse user, aborting!")
 			return []models.User{}, err
 		}
-
+		user.Certificate, _ = hex.DecodeString(certificateEnc)
+		user.Identity, _ = hex.DecodeString(identityEnc)
+		user.CreatedAt, _ = time.Parse("", createdTime)
 		users = append(users, user)
 	}
 
@@ -49,8 +56,12 @@ func (u *UsersRepository) GetUserByName(name *string) (models.User, error) {
 		&name,
 	})
 
+	var identityEnc string
+	var certificateEnc string
+	var orderSecret string
 	var user models.User
-	err := query.Scan(&user.Id, &user.Certificate, &user.Name, &user.CreatedAt)
+	err := query.Scan(&user.Id, &user.Name, &identityEnc, &certificateEnc, &orderSecret, &user.CreatedAt)
+
 	if err != nil {
 		fmt.Println("Failed to parse user, aborting!")
 		return models.User{}, err
@@ -70,8 +81,11 @@ func (u *UsersRepository) GetUserById(userId int) (models.User, error) {
 		&userId,
 	})
 
+	var identityEnc string
+	var certificateEnc string
+	var orderSecret string
 	var user models.User
-	err := query.Scan(&user.Id, &user.Certificate, &user.Name, &user.CreatedAt)
+	err := query.Scan(&user.Id, &user.Name, &identityEnc, &certificateEnc, &orderSecret, &user.CreatedAt)
 	if err != nil {
 		fmt.Println("Failed to parse user, aborting!")
 		return models.User{}, err
@@ -80,15 +94,18 @@ func (u *UsersRepository) GetUserById(userId int) (models.User, error) {
 	return user, nil
 }
 
-func (u *UsersRepository) AddUser(name *string) (int, error) {
+func (u *UsersRepository) AddUser(name *string, identity *string, certificate *string, orderSecret *string) (int, error) {
 	sql := `
 		INSERT INTO Users
-		(name, created_at)
-		VALUES ($1, $2)
+		(name, identity,encryptionCertificate,orderSecret, created_at)
+		VALUES ($1,$2,$3,$4,$5)
 	`
 
 	return u.storage.ExecReturnID(&sql, &[]interface{}{
-		name,
+		&name,
+		&identity,
+		&certificate,
+		&orderSecret,
 		time.Now().UTC(),
 	})
 

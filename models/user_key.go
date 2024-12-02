@@ -1,12 +1,7 @@
 package models
 
-import (
-	"time"
-)
-
-type UserKey struct {
-	Id        int
-	UserId    int
-	KeyData   string
-	CreatedAt time.Time
+type Keys struct {
+	Id       int
+	Data     string
+	Identity string
 }

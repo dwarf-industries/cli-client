@@ -11,14 +11,14 @@ type KeysRepository struct {
 	storage interfaces.Storage
 }
 
-func (k *KeysRepository) UserKeys(userId *int) (*[]models.UserKey, error) {
+func (k *KeysRepository) UserKeys(identity *string) (*[]models.Keys, error) {
 	sql := `
-		SELECT id, user_id, key_data, created_at FROM User_Keys
-		WHERE user_id = $1
+		SELECT id, data, identity FROM Keys
+		WHERE identity = $1
 	`
 
 	query, err := k.storage.Query(&sql, &[]interface{}{
-		&userId,
+		&identity,
 	})
 
 	if err != nil {
@@ -26,10 +26,10 @@ func (k *KeysRepository) UserKeys(userId *int) (*[]models.UserKey, error) {
 		return nil, err
 	}
 
-	var userKeys []models.UserKey
+	var userKeys []models.Keys
 	for query.Next() {
-		var key models.UserKey
-		err := query.Scan(&key.Id, &key.UserId, &key.KeyData, &key.CreatedAt)
+		var key models.Keys
+		err := query.Scan(&key.Id, &key.Data, &key.Identity)
 
 		if err != nil {
 			fmt.Println("Failed to bind data, to model key aborting")
@@ -42,14 +42,32 @@ func (k *KeysRepository) UserKeys(userId *int) (*[]models.UserKey, error) {
 	return &userKeys, nil
 }
 
-// KeyType 1 Encryption Private Key, 2 Identity Public Key, 3 Identity Private Key
-func (k *KeysRepository) AddKey(userId *int, keyType int, data *string) bool {
+func (k *KeysRepository) GetKeyByIdentity(identity *string) (*string, error) {
 	sql := `
-		INSERT INTO User_Keys (key_data, user_id, key_type) VALUES ($1, $2, $3)
+		SELECT data FROM Keys
+		WHERE identity = $1
+	`
+
+	querySingle := k.storage.QuerySingle(&sql, &[]interface{}{
+		&identity,
+	})
+
+	var key string
+	err := querySingle.Scan(&key)
+	if err != nil {
+		return nil, err
+	}
+
+	return &key, nil
+}
+
+func (k *KeysRepository) AddKey(identity *string, data *string) bool {
+	sql := `
+		INSERT INTO Keys (data, identity) VALUES ($1, $2)
 	`
 
 	err := k.storage.Exec(&sql, &[]interface{}{
-		&userId, &keyType, &data,
+		&identity, &data,
 	})
 
 	return err == nil
@@ -57,7 +75,7 @@ func (k *KeysRepository) AddKey(userId *int, keyType int, data *string) bool {
 
 func (k *KeysRepository) DeleteUserKey(id *int) bool {
 	sql := `
-		DELETE FROM User_keys
+		DELETE FROM Keys
 		WHERE id = $1
 	`
 
