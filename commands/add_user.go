@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -25,17 +24,17 @@ type AddUserCommand struct {
 
 func (u *AddUserCommand) Executable() *cobra.Command {
 	return &cobra.Command{
-		Use:   "add-user [name]",
-		Short: "Add a new user to the contact list located from the contacts directory",
+		Use:   "add-user [path]",
+		Short: "Add a new user to the contact list located from path",
 		Args:  cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
-			name := args[0]
-			u.Execute(&name)
+			path := args[0]
+			u.Execute(&path)
 		},
 	}
 }
 
-func (u *AddUserCommand) Execute(name *string) {
+func (u *AddUserCommand) Execute(path *string) {
 	password := u.PasswordManager.Input()
 	ok := u.PasswordManager.Match(password)
 	if !ok {
@@ -46,14 +45,9 @@ func (u *AddUserCommand) Execute(name *string) {
 	u.Storage.Open()
 	defer u.Storage.Close()
 
-	contact := strings.Join([]string{
-		"./contacts/",
-		*name,
-	}, "")
-
-	file, err := os.ReadFile(contact)
+	file, err := os.ReadFile(*path)
 	if err != nil {
-		fmt.Printf("Contact doesn't exist, please make sure that %s.json is isnide the folder", *name)
+		fmt.Printf("Contact doesn't exist, please make sure that %s.json is isnide the folder", *path)
 		os.Exit(1)
 	}
 
@@ -63,14 +57,14 @@ func (u *AddUserCommand) Execute(name *string) {
 		os.Exit(1)
 	}
 
-	_, err = u.UsersRepository.AddUser(name, &contactDetails.Identity, &contactDetails.EncryptionCertificate, &contactDetails.OrderSecret)
+	_, err = u.UsersRepository.AddUser(path, &contactDetails.Identity, &contactDetails.EncryptionCertificate, &contactDetails.OrderSecret)
 
 	if err != nil {
 		fmt.Println("Failed to create a user, aborting!")
 		os.Exit(1)
 	}
 
-	fmt.Println(name)
+	fmt.Println(path)
 	fmt.Print("\r")
 	fmt.Println()
 	fmt.Println()
