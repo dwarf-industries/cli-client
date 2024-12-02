@@ -17,8 +17,9 @@ func main() {
 		Use: "client",
 	}
 
-	addWalletcommand := commands.AddWalletCommand{
-		WalletService: di.WalletService(),
+	setupAccountCommand := commands.SetupAccountCommand{
+		WalletService:   di.WalletService(),
+		PasswordManager: di.GetPasswordManager(),
 	}
 	generateWalletCommand := commands.GenerateWalletCommand{
 		WalletService: di.WalletService(),
@@ -35,14 +36,18 @@ func main() {
 		CertificateService: di.GetCertificateService(),
 		KeysService:        di.GetKeyService(),
 	}
-	importUserCommand := commands.ImportUsersCommand{
-		UsersRepository:        di.UsersRepository(),
-		PasswordManager:        di.GetPasswordManager(),
-		CertificatesRepository: di.GetUserCertificates(),
-		Storage:                di.DatabaseService(),
+	exportContactDetails := commands.ShareContactDetails{
+		Storage:            di.DatabaseService(),
+		UsersRepository:    di.UsersRepository(),
+		PasswordManager:    di.GetPasswordManager(),
+		UserKeysRepository: di.GetUserKeysRepository(),
+		UserCertificates:   di.GetUserCertificates(),
+		CertificateService: di.GetCertificateService(),
+		KeysService:        di.GetKeyService(),
 	}
 	usersCommand := commands.UsersCommand{
 		UsersRepository: di.UsersRepository(),
+		Storage:         di.DatabaseService(),
 	}
 	nodesCommand := commands.NodesCommand{
 		Storage:         di.DatabaseService(),
@@ -50,12 +55,12 @@ func main() {
 		NodesRepository: di.GetNodesRepository(),
 	}
 
-	rootCmd.AddCommand(addWalletcommand.Executable())
+	rootCmd.AddCommand(setupAccountCommand.Executable())
 	rootCmd.AddCommand(generateWalletCommand.Executable())
 	rootCmd.AddCommand(rpcCommand.Executable())
 	rootCmd.AddCommand(addUserCommand.Executable())
+	rootCmd.AddCommand(exportContactDetails.Executable())
 	rootCmd.AddCommand(usersCommand.Executable())
-	rootCmd.AddCommand(importUserCommand.Executable())
 	rootCmd.AddCommand(nodesCommand.Executable())
 
 	if err := rootCmd.Execute(); err != nil {
