@@ -102,9 +102,16 @@ func (c *ConnectCommand) Execute(userId *int) {
 }
 
 func (c *ConnectCommand) ConnectToNode(node *models.Node, user *models.User) {
+	wallet, err := c.WalletService.ActiveWallet()
+	if err != nil {
+		fmt.Println("No wallet set, aborting")
+		os.Exit(1)
+	}
 
-	url := ""
-	challenge, err := c.AuthenticationService.Authenticate(url, &user.Identity)
+	identity := c.WalletService.GetAddressForPrivateKey(wallet)
+	parsed := []byte(identity)
+	url := node.Ip
+	challenge, err := c.AuthenticationService.Authenticate(url, &parsed)
 
 	if err != nil {
 		panic("Failed to produce challenge, can't establish link with the node")
