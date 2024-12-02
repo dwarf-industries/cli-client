@@ -62,7 +62,7 @@ func (i *ImportUsersCommand) Execute(contactDir *string) {
 		filePath := filepath.Join(*contactDir, name)
 		content, _ := os.ReadFile(filePath)
 
-		var user models.UserContract
+		var user models.UserContact
 		if err := json.Unmarshal(content, &user); err != nil {
 			fmt.Println("Failed to parse contact info, skipping, malformed json, please check your data!")
 			continue
@@ -79,7 +79,7 @@ func (i *ImportUsersCommand) Execute(contactDir *string) {
 	}
 }
 
-func (i *ImportUsersCommand) importUser(user models.UserContract) {
+func (i *ImportUsersCommand) importUser(user models.UserContact) {
 	created, err := i.UsersRepository.AddUser(&user.Name)
 
 	if err != nil {
