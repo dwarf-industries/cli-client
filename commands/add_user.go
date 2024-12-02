@@ -35,12 +35,9 @@ func (u *AddUserCommand) Executable() *cobra.Command {
 }
 
 func (u *AddUserCommand) Execute(name *string) {
-	fmt.Println("Please enter your account password")
-	var password string
-	passwordInput := u.PasswordManager.Input()
-	password = *passwordInput
+	password := u.PasswordManager.Input()
 
-	ok := u.PasswordManager.Match(&password)
+	ok := u.PasswordManager.Match(password)
 
 	if !ok {
 		fmt.Println("Wrong account password, aborting!")
@@ -64,7 +61,7 @@ func (u *AddUserCommand) Execute(name *string) {
 		return
 	}
 
-	encryptedHexBytes, err := u.PasswordManager.Encrypt(*pub, []byte(password))
+	encryptedHexBytes, err := u.PasswordManager.Encrypt(*pub, []byte(*password))
 	if err != nil {
 		fmt.Println("Failed to encrypt public key hex bytes")
 		return
@@ -73,7 +70,7 @@ func (u *AddUserCommand) Execute(name *string) {
 	encryptedHexBytesHex := hex.EncodeToString(*encryptedHexBytes)
 	u.UserKeysRepository.AddKey(&created, 2, &encryptedHexBytesHex)
 
-	encryptPrivKey, err := u.PasswordManager.Encrypt(*priv, []byte(password))
+	encryptPrivKey, err := u.PasswordManager.Encrypt(*priv, []byte(*password))
 	if err != nil {
 		fmt.Println("Failed to encrypt private key hex bytes")
 		return
@@ -104,7 +101,7 @@ func (u *AddUserCommand) Execute(name *string) {
 
 	privBytes := x509.MarshalPKCS1PrivateKey(pk)
 
-	encryptionPk, err := u.PasswordManager.Encrypt(privBytes, []byte(password))
+	encryptionPk, err := u.PasswordManager.Encrypt(privBytes, []byte(*password))
 	if err != nil {
 		fmt.Println("Failed to save the encryption private key aborting!")
 		return
