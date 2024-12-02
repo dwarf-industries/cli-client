@@ -103,7 +103,7 @@ func (l ListView) View() string {
 
 	estimatedPrice := big.NewInt(1).Mul(cost, big.NewInt(int64(num)))
 	formated := converters.WeiToEth(estimatedPrice)
-	priceFormat := fmt.Sprintf("%s  %s\n", "\nControls:\n'q' to quit,\n'a' to select all\n'd' to deselect all \n", formated.String())
+	priceFormat := fmt.Sprintf("%sEstimated cost for transaction on the network based on the amount of nodes used: %s ETH\n", "\nControls:\n'q' to quit,\n'a' to select all\n'd' to deselect all\n", formated.String())
 	s += priceFormat
 	return s
 }
