@@ -36,6 +36,15 @@ func main() {
 		CertificateService: di.GetCertificateService(),
 		KeysService:        di.GetKeyService(),
 	}
+	importContactsCommand := commands.ImportContactsCommand{
+		Storage:            di.DatabaseService(),
+		UsersRepository:    di.UsersRepository(),
+		PasswordManager:    di.GetPasswordManager(),
+		UserKeysRepository: di.GetUserKeysRepository(),
+		UserCertificates:   di.GetUserCertificates(),
+		CertificateService: di.GetCertificateService(),
+		KeysService:        di.GetKeyService(),
+	}
 	exportContactDetails := commands.ShareContactDetails{
 		Storage:            di.DatabaseService(),
 		UsersRepository:    di.UsersRepository(),
@@ -59,6 +68,7 @@ func main() {
 	rootCmd.AddCommand(generateWalletCommand.Executable())
 	rootCmd.AddCommand(rpcCommand.Executable())
 	rootCmd.AddCommand(addUserCommand.Executable())
+	rootCmd.AddCommand(importContactsCommand.Executable())
 	rootCmd.AddCommand(exportContactDetails.Executable())
 	rootCmd.AddCommand(usersCommand.Executable())
 	rootCmd.AddCommand(nodesCommand.Executable())
