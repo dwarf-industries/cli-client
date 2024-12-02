@@ -21,7 +21,7 @@ type ImportUsersCommand struct {
 	UsersRepository        repositories.UsersRepository
 	CertificatesRepository repositories.Certificate
 	PasswordManager        interfaces.PasswordManager
-	password               string
+	password               *string
 }
 
 func (i *ImportUsersCommand) Executable() *cobra.Command {
@@ -40,9 +40,7 @@ func (i *ImportUsersCommand) Execute(contactDir *string) {
 	i.Storage.Open()
 	defer i.Storage.Close()
 
-	fmt.Println("Please enter your password!")
-	passwordInput := i.PasswordManager.Input()
-	i.password = *passwordInput
+	i.password = i.PasswordManager.Input()
 
 	files, err := os.ReadDir(*contactDir)
 	if err != nil {
@@ -88,7 +86,7 @@ func (i *ImportUsersCommand) importUser(user models.UserContract) {
 		fmt.Println("Failed to save new user with name: ", user.Name)
 	}
 
-	identityPublic, err := i.PasswordManager.Encrypt([]byte(user.Identity), []byte(i.password))
+	identityPublic, err := i.PasswordManager.Encrypt([]byte(user.Identity), []byte(*i.password))
 
 	if err != nil {
 		fmt.Println("Failed to encrypt identity certificate!")
@@ -103,7 +101,7 @@ func (i *ImportUsersCommand) importUser(user models.UserContract) {
 		return
 	}
 
-	encryptionCertificate, err := i.PasswordManager.Encrypt([]byte(user.EncryptionCertificate), []byte(i.password))
+	encryptionCertificate, err := i.PasswordManager.Encrypt([]byte(user.EncryptionCertificate), []byte(*i.password))
 
 	if err != nil {
 		fmt.Println("Failed to encrypt encryption certificate!")
