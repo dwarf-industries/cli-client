@@ -8,11 +8,13 @@ import (
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/spf13/cobra"
 
+	"client/interfaces"
 	"client/repositories"
 )
 
 type UsersCommand struct {
 	UsersRepository repositories.UsersRepository
+	Storage         interfaces.Storage
 }
 
 func (u *UsersCommand) Executable() *cobra.Command {
@@ -26,6 +28,8 @@ func (u *UsersCommand) Executable() *cobra.Command {
 }
 
 func (u *UsersCommand) Execute() {
+	u.Storage.Open()
+	defer u.Storage.Close()
 	users, err := u.UsersRepository.GetAllUsers()
 
 	if err != nil {
@@ -42,10 +46,8 @@ func (u *UsersCommand) Execute() {
 	t.AppendHeader(table.Row{"Id", "Name", "Created At"})
 
 	for _, user := range users {
-		t.AppendRow(table.Row{"Id", user.Id})
-		t.AppendRow(table.Row{"Name", user.Name})
-		t.AppendRow(table.Row{"Name", user.CreatedAt})
-		t.Render()
-
+		t.AppendRow(table.Row{user.Id, user.Name, user.CreatedAt})
 	}
+	t.Render()
+	os.Exit(0)
 }
