@@ -1,6 +1,6 @@
 package models
 
-type UserContract struct {
+type UserContact struct {
 	Name                  string
 	Identity              string
 	EncryptionCertificate string

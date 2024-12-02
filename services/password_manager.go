@@ -143,7 +143,6 @@ func (p *PasswordManager) Input() *string {
 
 		if char == 8 || char == 127 {
 			if len(password) > 0 {
-
 				password = password[:len(password)-1]
 				fmt.Print("\b \b")
 			}
@@ -154,6 +153,7 @@ func (p *PasswordManager) Input() *string {
 		fmt.Print("*")
 	}
 
+	fmt.Print("\r")
 	return &password
 }
 
