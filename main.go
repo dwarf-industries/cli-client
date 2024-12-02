@@ -50,8 +50,6 @@ func main() {
 		NodesRepository: di.GetNodesRepository(),
 	}
 
-	nodesCommand.Execute()
-
 	rootCmd.AddCommand(addWalletcommand.Executable())
 	rootCmd.AddCommand(generateWalletCommand.Executable())
 	rootCmd.AddCommand(rpcCommand.Executable())
