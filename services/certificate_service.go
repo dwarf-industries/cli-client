@@ -52,8 +52,7 @@ func (c *CertificateService) LoadPrivateKey(keyFile string) (*rsa.PrivateKey, er
 	return privKey, nil
 }
 
-func (c *CertificateService) IssueIdentityCertificate(priv *ed25519.PublicKey, pub *ed25519.PrivateKey) (*string, error) {
-
+func (c *CertificateService) IssueIdentityCertificate(pub ed25519.PublicKey, priv ed25519.PrivateKey) (*string, error) {
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(time.Now().UnixNano()),
 		Subject: pkix.Name{
@@ -74,13 +73,12 @@ func (c *CertificateService) IssueIdentityCertificate(priv *ed25519.PublicKey, p
 
 	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, pub, priv)
 	if err != nil {
-		log.Fatalf("Failed to create identity certificate: %v", err)
+		return nil, fmt.Errorf("failed to create identity certificate: %w", err)
 	}
 
 	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
-
-	log.Printf("Identity certificate and key saved to ")
 	pemHex := hex.EncodeToString(certPEM)
+
 	return &pemHex, nil
 }
 
@@ -109,8 +107,6 @@ func (c *CertificateService) IssueEncryptionCertificate(priv *rsa.PrivateKey) (*
 	}
 
 	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
-
-	log.Printf("Encryption certificate and key saved to")
 	pemHex := hex.EncodeToString(certPEM)
 	return &pemHex, nil
 }
