@@ -80,16 +80,20 @@ func (u *UsersRepository) GetUserById(userId int) (models.User, error) {
 	query := u.storage.QuerySingle(&sql, &[]interface{}{
 		&userId,
 	})
-
 	var identityEnc string
 	var certificateEnc string
 	var orderSecret string
+	var createdTime string
 	var user models.User
-	err := query.Scan(&user.Id, &user.Name, &identityEnc, &certificateEnc, &orderSecret, &user.CreatedAt)
+	err := query.Scan(&user.Id, &user.Name, &identityEnc, &certificateEnc, &orderSecret, &createdTime)
 	if err != nil {
 		fmt.Println("Failed to parse user, aborting!")
 		return models.User{}, err
 	}
+
+	user.Certificate, _ = hex.DecodeString(certificateEnc)
+	user.Identity, _ = hex.DecodeString(identityEnc)
+	user.CreatedAt, _ = time.Parse("", createdTime)
 
 	return user, nil
 }
