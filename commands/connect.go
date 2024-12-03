@@ -13,6 +13,7 @@ import (
 	"client/interfaces"
 	"client/models"
 	"client/repositories"
+	"client/views"
 )
 
 type ConnectCommand struct {
@@ -95,10 +96,16 @@ func (c *ConnectCommand) Execute(userId *int) {
 		currentNodes = nodes
 	}
 
+	establishedConnections := make(map[string]interfaces.SocketConnection)
 	for _, n := range currentNodes {
 		c.ConnectToNode(&n, &user)
-
+		establishedConnections[n.Name] = c.SocketService
 	}
+
+	chatView := views.ChatView{
+		NodeConnections: &establishedConnections,
+	}
+	chatView.Init()
 
 	os.Exit(0)
 }
