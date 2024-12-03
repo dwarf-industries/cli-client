@@ -8,12 +8,10 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"golang.org/x/crypto/sha3"
 
 	"client/interfaces"
 )
@@ -91,7 +89,13 @@ func (w *WalletService) GetWallet(password *string) (*ecdsa.PrivateKey, error) {
 		return nil, err
 	}
 
-	privateKey, err := crypto.HexToECDSA(string(walletBytes))
+	privateKeyData, err := w.PasswordManager.Decrypt(walletBytes, []byte(*password))
+	if err != nil {
+		fmt.Println("failed to decrypt private key")
+		return nil, err
+	}
+
+	privateKey, err := crypto.HexToECDSA(string(privateKeyData))
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -115,6 +119,9 @@ func (w *WalletService) SignMessage(message []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to access active wallet: %v", err)
 	}
 
+	addressHex := crypto.PubkeyToAddress(privateKey.PublicKey).Hex()
+	fmt.Println("Wallet address:", addressHex)
+
 	hash := crypto.Keccak256Hash([]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(message), message)))
 	signature, err := crypto.Sign(hash.Bytes(), privateKey)
 	if err != nil {
@@ -125,29 +132,8 @@ func (w *WalletService) SignMessage(message []byte) ([]byte, error) {
 }
 
 func (w *WalletService) GetAddressForPrivateKey(key *ecdsa.PrivateKey) string {
-	publicKey := key.PublicKey
-
-	xBytes := publicKey.X.Bytes()
-	yBytes := publicKey.Y.Bytes()
-
-	xPadded := make([]byte, 32-len(xBytes))
-	yPadded := make([]byte, 32-len(yBytes))
-	xPadded = append(xPadded, xBytes...)
-	yPadded = append(yPadded, yBytes...)
-
-	publicKeyBytes := append(xPadded, yPadded...)
-
-	hasher := sha3.NewLegacyKeccak256()
-	hasher.Write(publicKeyBytes)
-	publicKeyHash := hasher.Sum(nil)
-
-	address := publicKeyHash[len(publicKeyHash)-20:]
-	addressHex := hex.EncodeToString(address)
-	etherAddress := strings.Join([]string{
-		"0x",
-		addressHex,
-	}, "")
-	return etherAddress
+	addressHex := crypto.PubkeyToAddress(key.PublicKey).Hex()
+	return addressHex
 }
 
 func (w *WalletService) VerifySignature(message []byte, signature []byte, expectedAddress string) (bool, error) {
