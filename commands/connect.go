@@ -9,12 +9,14 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"client/di"
 	"client/interfaces"
 	"client/models"
 	"client/repositories"
 )
 
 type ConnectCommand struct {
+	PasswordManager       interfaces.PasswordManager
 	WalletService         interfaces.WalletService
 	AuthenticationService interfaces.AuthenticationService
 	UsersRepository       repositories.UsersRepository
@@ -45,10 +47,13 @@ func (c *ConnectCommand) Executable() *cobra.Command {
 }
 
 func (c *ConnectCommand) Execute(userId *int) {
-	_, err := c.WalletService.ActiveWallet()
+	password := c.PasswordManager.Input()
+	_, err := c.WalletService.GetWallet(password)
 	if err != nil {
 		panic("Active operation wallet not found")
 	}
+	di.DatabaseService().Open()
+	defer di.DatabaseService().Close()
 
 	user, err := c.UsersRepository.GetUserById(*userId)
 
@@ -57,7 +62,7 @@ func (c *ConnectCommand) Execute(userId *int) {
 	}
 
 	selectedNodes, err := c.NodeRepository.Selected()
-	if err != nil {
+	if err != nil || len(*selectedNodes) == 0 {
 		fmt.Println("There are no node preferences")
 		fmt.Println("Warning: Since there are no node preferences you're about to connect to the entire network for sharding")
 		fmt.Println("This can lead to expensive network transfers, are you sure you want  are you sure you want to proceed")
@@ -66,9 +71,6 @@ func (c *ConnectCommand) Execute(userId *int) {
 		var answer string
 		fmt.Scanf(answer)
 
-		if answer != "y" {
-			os.Exit(1)
-		}
 	}
 
 	nodes, err := c.RegisterService.Oracles()
@@ -94,7 +96,7 @@ func (c *ConnectCommand) Execute(userId *int) {
 	}
 
 	for _, n := range currentNodes {
-		go c.ConnectToNode(&n, &user)
+		c.ConnectToNode(&n, &user)
 
 	}
 
@@ -109,19 +111,15 @@ func (c *ConnectCommand) ConnectToNode(node *models.Node, user *models.User) {
 	}
 
 	identity := c.WalletService.GetAddressForPrivateKey(wallet)
-	parsed := []byte(identity)
+	identityBytes := []byte(identity)
 	url := node.Ip
-	challenge, err := c.AuthenticationService.Authenticate(url, &parsed)
+	challenge, err := c.AuthenticationService.Authenticate(url, &identityBytes)
 
 	if err != nil {
 		panic("Failed to produce challenge, can't establish link with the node")
 	}
-	challengeBytes, err := hex.DecodeString(*challenge)
-	if err != nil {
-		panic("Not a valid encode string")
-	}
 
-	signature, err := c.WalletService.SignMessage(challengeBytes)
+	signature, err := c.WalletService.SignMessage(*challenge)
 	if err != nil {
 		fmt.Printf("Failed to produce a valid signature for the given challenge: %s", *challenge)
 		return
@@ -132,10 +130,14 @@ func (c *ConnectCommand) ConnectToNode(node *models.Node, user *models.User) {
 		panic("couldn't generate session token")
 	}
 
+	encodeIdentity := hex.EncodeToString(user.Identity)
+	signatureHex := hex.EncodeToString(signature)
+
 	handshake := map[string]interface{}{
-		"action":          "verifyChallenge",
-		"certificate":     user.Identity,
-		"signedChallenge": signature,
+		"action":          "authenticate",
+		"address":         identity,
+		"certificate":     encodeIdentity,
+		"signedChallenge": signatureHex,
 		"sessionToken":    token,
 	}
 
