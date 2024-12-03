@@ -26,7 +26,7 @@ func (u *AddUserCommand) Executable() *cobra.Command {
 	return &cobra.Command{
 		Use:   "add-user [path]",
 		Short: "Add a new user to the contact list located from path",
-		Args:  cobra.ExactArgs(0),
+		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			path := args[0]
 			u.Execute(&path)
