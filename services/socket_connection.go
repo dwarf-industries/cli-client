@@ -3,6 +3,8 @@ package services
 import (
 	"fmt"
 	"log"
+	"net/http"
+	"strings"
 
 	"github.com/gorilla/websocket"
 )
@@ -12,11 +14,15 @@ type SocketConnection struct {
 }
 
 func (s *SocketConnection) Connect(url *string, handshake *map[string]interface{}) bool {
-	conn, _, err := websocket.DefaultDialer.Dial(*url, nil)
+	socketUrl := fmt.Sprintf("wss://%s/v1/rlt/ws", strings.TrimPrefix(*url, "https://"))
+	headers := http.Header{}
+
+	conn, _, err := websocket.DefaultDialer.Dial(socketUrl, headers)
 	if err != nil {
 		log.Fatalf("Failed to connect to WebSocket: %v", err)
 	}
 	defer conn.Close()
+
 	fmt.Println("Connected to WebSocket")
 
 	if err := conn.WriteJSON(handshake); err != nil {
@@ -33,11 +39,12 @@ func (s *SocketConnection) Connect(url *string, handshake *map[string]interface{
 		log.Fatalf("Authentication failed: %v", authResponse)
 	}
 
-	return false
+	s.connection = conn
+
+	return true
 }
 
 func (s *SocketConnection) SendData(data *map[string]interface{}) *map[string]interface{} {
-
 	if err := s.connection.WriteJSON(data); err != nil {
 		log.Fatalf("Failed to send message: %v", err)
 	}
