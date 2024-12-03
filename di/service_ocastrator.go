@@ -20,6 +20,8 @@ var passwordManager interfaces.PasswordManager
 var certificateService interfaces.CertificateService
 var keyService interfaces.KeyService
 var registerService interfaces.RegisterService
+var authenticationService interfaces.AuthenticationService
+var socketService interfaces.SocketConnection
 
 func SetupServices() {
 	err := godotenv.Load(".env")
@@ -55,6 +57,9 @@ func SetupServices() {
 		ContractAddr:        os.Getenv("CONTRACT_ADDRESS"),
 		VerificationService: IdentityVerificationService,
 	}
+	authenticationService = &services.AuthenticationService{}
+	authenticationService.Init()
+	socketService = &services.SocketConnection{}
 }
 
 func setupDatabase() interfaces.Storage {
@@ -119,6 +124,14 @@ func GetKeyService() interfaces.KeyService {
 
 func GetRegisterService() interfaces.RegisterService {
 	return registerService
+}
+
+func GetAuthenticationService() interfaces.AuthenticationService {
+	return authenticationService
+}
+
+func GetSocketService() interfaces.SocketConnection {
+	return socketService
 }
 
 func getExecutablePath() string {
