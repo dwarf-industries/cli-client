@@ -14,10 +14,10 @@ type AuthenticationService struct {
 	tokens map[string]string
 }
 
-func (a *AuthenticationService) Authenticate(url string, certificate *[]byte) (*string, error) {
+func (a *AuthenticationService) Authenticate(url string, certificate *[]byte) (*[]byte, error) {
 	requestBody := bytes.NewBuffer(*certificate)
 
-	resp, err := http.Post(url+"/identity/certificate", "application/octet-stream", requestBody)
+	resp, err := http.Post(url+"/v1/identity/certificate", "application/octet-stream", requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
@@ -28,17 +28,20 @@ func (a *AuthenticationService) Authenticate(url string, certificate *[]byte) (*
 		return nil, fmt.Errorf("server returned error: %s", string(body))
 	}
 
-	var challenge map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&challenge); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	body, _ := io.ReadAll(resp.Body)
+	var str string
+	if err := json.Unmarshal(body, &str); err != nil {
+		fmt.Println("Failed to unmarshal challenge")
+		return nil, err
 	}
 
-	challengeValue, ok := challenge["Challenge"].(string)
-	if !ok {
-		return nil, fmt.Errorf("invalid response structure")
+	bytes, err := hex.DecodeString(str)
+	if err != nil {
+		fmt.Println("Failed to extract bytes from hex")
+		return nil, err
 	}
 
-	return &challengeValue, nil
+	return &bytes, nil
 }
 
 func (a *AuthenticationService) GenerateSessionToken(url *string) (*string, error) {
@@ -57,4 +60,8 @@ func (a *AuthenticationService) GenerateSessionToken(url *string) (*string, erro
 func (a *AuthenticationService) GetSessionToken(url *string) *string {
 	token := a.tokens[*url]
 	return &token
+}
+
+func (a *AuthenticationService) Init() {
+	a.tokens = make(map[string]string)
 }
