@@ -64,6 +64,19 @@ func main() {
 		NodesRepository: di.GetNodesRepository(),
 	}
 
+	connectCommand := commands.ConnectCommand{
+		PasswordManager:       di.GetPasswordManager(),
+		WalletService:         di.WalletService(),
+		AuthenticationService: di.GetAuthenticationService(),
+		UsersRepository:       di.UsersRepository(),
+		SocketService:         di.GetSocketService(),
+		NodeRepository:        di.GetNodesRepository(),
+		RegisterService:       di.GetRegisterService(),
+	}
+
+	user := 2
+	connectCommand.Execute(&user)
+
 	rootCmd.AddCommand(setupAccountCommand.Executable())
 	rootCmd.AddCommand(generateWalletCommand.Executable())
 	rootCmd.AddCommand(rpcCommand.Executable())
@@ -72,6 +85,7 @@ func main() {
 	rootCmd.AddCommand(exportContactDetails.Executable())
 	rootCmd.AddCommand(usersCommand.Executable())
 	rootCmd.AddCommand(nodesCommand.Executable())
+	rootCmd.AddCommand(connectCommand.Executable())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
