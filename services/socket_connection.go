@@ -21,7 +21,6 @@ func (s *SocketConnection) Connect(url *string, handshake *map[string]interface{
 	if err != nil {
 		log.Fatalf("Failed to connect to WebSocket: %v", err)
 	}
-	defer conn.Close()
 
 	fmt.Println("Connected to WebSocket")
 
@@ -46,12 +45,14 @@ func (s *SocketConnection) Connect(url *string, handshake *map[string]interface{
 
 func (s *SocketConnection) SendData(data *map[string]interface{}) *map[string]interface{} {
 	if err := s.connection.WriteJSON(data); err != nil {
-		log.Fatalf("Failed to send message: %v", err)
+		fmt.Printf("Failed to send message: %v", err)
+		return nil
 	}
 
 	var response map[string]interface{}
 	if err := s.connection.ReadJSON(&response); err != nil {
-		log.Fatalf("Failed to read handshake response: %v", err)
+		fmt.Printf("Failed to read handshake response: %v", err)
+		return nil
 	}
 	return &response
 }
