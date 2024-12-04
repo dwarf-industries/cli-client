@@ -103,9 +103,10 @@ func (c *ConnectCommand) Execute(userId *int) {
 	}
 
 	chatView := views.ChatView{
-		NodeConnections: &establishedConnections,
+		PaymentProcessor: di.GetPaymentProcessor(),
+		NodeConnections:  &establishedConnections,
 	}
-	chatView.Init()
+	chatView.Init(&user)
 
 	os.Exit(0)
 }
@@ -153,6 +154,8 @@ func (c *ConnectCommand) ConnectToNode(node *models.Node, user *models.User) {
 	if !connected {
 		panic("Failed to connect to node")
 	}
+
+	c.SocketService.SetToken(token)
 
 }
 
