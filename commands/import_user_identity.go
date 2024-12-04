@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/spf13/cobra"
 
@@ -12,7 +13,7 @@ import (
 	"client/repositories"
 )
 
-type AddUserCommand struct {
+type ImportUserIdentityCommand struct {
 	Storage            interfaces.Storage
 	PasswordManager    interfaces.PasswordManager
 	UsersRepository    repositories.UsersRepository
@@ -22,19 +23,25 @@ type AddUserCommand struct {
 	KeysService        interfaces.KeyService
 }
 
-func (u *AddUserCommand) Executable() *cobra.Command {
+func (u *ImportUserIdentityCommand) Executable() *cobra.Command {
 	return &cobra.Command{
-		Use:   "add-user [path]",
-		Short: "Add a new user to the contact list located from path",
-		Args:  cobra.ExactArgs(1),
+		Use:   "import-user-identity [user_id] [path]",
+		Short: "Imports a user identity and associates it with an existing user",
+		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			path := args[0]
-			u.Execute(&path)
+
+			userId, err := strconv.Atoi(args[0])
+			if err != nil {
+				fmt.Printf("Bad input data, aborting, expected number got string: %s\n", args[0])
+				os.Exit(1)
+			}
+			path := args[1]
+			u.Execute(&userId, &path)
 		},
 	}
 }
 
-func (u *AddUserCommand) Execute(path *string) {
+func (u *ImportUserIdentityCommand) Execute(userId *int, path *string) {
 	password := u.PasswordManager.Input()
 	ok := u.PasswordManager.Match(password)
 	if !ok {
@@ -57,7 +64,7 @@ func (u *AddUserCommand) Execute(path *string) {
 		os.Exit(1)
 	}
 
-	_, err = u.UsersRepository.AddUser(path, &contactDetails.Identity, &contactDetails.EncryptionCertificate, &contactDetails.OrderSecret)
+	_, err = u.UsersRepository.UpdateUser(userId, &contactDetails.Identity, &contactDetails.EncryptionCertificate, &contactDetails.OrderSecret)
 
 	if err != nil {
 		fmt.Println("Failed to create a user, aborting!")
