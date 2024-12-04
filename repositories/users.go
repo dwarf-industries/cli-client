@@ -27,9 +27,9 @@ func (u *UsersRepository) GetAllUsers() ([]models.User, error) {
 
 	var users []models.User
 	for query.Next() {
-		var identityEnc string
-		var certificateEnc string
-		var orderSecret string
+		var identityEnc *string
+		var certificateEnc *string
+		var orderSecret *string
 		var createdTime string
 		var user models.User
 		err := query.Scan(&user.Id, &user.Name, &identityEnc, &certificateEnc, &orderSecret, &createdTime)
@@ -37,9 +37,19 @@ func (u *UsersRepository) GetAllUsers() ([]models.User, error) {
 			fmt.Println("Failed to parse user, aborting!")
 			return []models.User{}, err
 		}
-		user.Certificate, _ = hex.DecodeString(certificateEnc)
-		user.Identity, _ = hex.DecodeString(identityEnc)
-		user.CreatedAt, _ = time.Parse("", createdTime)
+
+		if certificateEnc != nil {
+			user.Certificate, _ = hex.DecodeString(*certificateEnc)
+		}
+
+		if identityEnc != nil {
+			user.Identity, _ = hex.DecodeString(*identityEnc)
+
+		}
+		if orderSecret != nil {
+			user.OrderSecret, _ = hex.DecodeString(*orderSecret)
+		}
+
 		users = append(users, user)
 	}
 
@@ -80,9 +90,9 @@ func (u *UsersRepository) GetUserById(userId int) (models.User, error) {
 	query := u.storage.QuerySingle(&sql, &[]interface{}{
 		&userId,
 	})
-	var identityEnc string
-	var certificateEnc string
-	var orderSecret string
+	var identityEnc *string
+	var certificateEnc *string
+	var orderSecret *string
 	var createdTime string
 	var user models.User
 	err := query.Scan(&user.Id, &user.Name, &identityEnc, &certificateEnc, &orderSecret, &createdTime)
@@ -91,28 +101,61 @@ func (u *UsersRepository) GetUserById(userId int) (models.User, error) {
 		return models.User{}, err
 	}
 
-	user.Certificate, _ = hex.DecodeString(certificateEnc)
-	user.Identity, _ = hex.DecodeString(identityEnc)
+	if certificateEnc != nil {
+		user.Certificate, _ = hex.DecodeString(*certificateEnc)
+	}
+
+	if identityEnc != nil {
+		user.Identity, _ = hex.DecodeString(*identityEnc)
+
+	}
+	if orderSecret != nil {
+		user.OrderSecret, _ = hex.DecodeString(*orderSecret)
+	}
+
 	user.CreatedAt, _ = time.Parse("", createdTime)
 
 	return user, nil
 }
 
-func (u *UsersRepository) AddUser(name *string, identity *string, certificate *string, orderSecret *string) (int, error) {
+func (u *UsersRepository) CreateUser(name *string) (int, error) {
 	sql := `
 		INSERT INTO Users
-		(name, identity,encryptionCertificate,orderSecret, created_at)
-		VALUES ($1,$2,$3,$4,$5)
+		(name)
+		VALUES ($1)
 	`
 
 	return u.storage.ExecReturnID(&sql, &[]interface{}{
 		&name,
-		&identity,
-		&certificate,
-		&orderSecret,
-		time.Now().UTC(),
+	})
+}
+
+func (u *UsersRepository) UpdateUser(id *int, identity *string, certificate *string, orderSecret *string) (int, error) {
+	user, err := u.GetUserById(*id)
+
+	if err != nil {
+		fmt.Println("User doesn't exist")
+		return 0, err
+	}
+
+	fmt.Println(user.Id, user.Name)
+
+	sql := `
+		UPDATE Users SET
+			identity_contract=$1,
+			encryption_certificate=$2,
+			order_secret=$3
+		WHERE id=$4
+	`
+
+	err = u.storage.Exec(&sql, &[]interface{}{
+		identity,
+		certificate,
+		orderSecret,
+		id,
 	})
 
+	return 0, err
 }
 
 func (u *UsersRepository) DeleteUser(id int) bool {
