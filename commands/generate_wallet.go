@@ -36,11 +36,9 @@ func (g *GenerateWalletCommand) Execute(password *string) {
 
 	fmt.Println("")
 	publicKeyHex := g.WalletService.GetAddressForPrivateKey(wallet)
-
 	privateKeyHex := wallet.D.Text(16)
 
 	_, err = g.WalletService.SetWallet(&privateKeyHex, password)
-
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println("Failed to create new wallet.")
@@ -61,9 +59,9 @@ func (g *GenerateWalletCommand) Execute(password *string) {
 	warning := color.New(color.FgRed, color.Bold).SprintFunc()
 	fmt.Println(warning("\n⚠️  IMPORTANT: Keep a secure copy of your private key. It is required for wallet recovery and cannot be retrieved if lost."))
 	fmt.Println("\n⚠️  IMPORTANT: new wallets have an empty balance, you should use the public key for the newly created wallet to fund any operations such as registering it as a valid oracle")
-	fmt.Println("you can learn more about funding and why it's required under 'oracle network-operation-info'")
+	fmt.Println("you can learn more about funding and why it's required under 'client network-operation-info'")
 	infoHeader := color.New(color.BgCyan, color.Bold).SprintFunc()
-	fmt.Println(infoHeader("for more information regarding wallets 'oracle wallets-info'"))
+	fmt.Println(infoHeader("for more information regarding wallets 'client wallets-info'"))
 
 	os.Exit(0)
 }
