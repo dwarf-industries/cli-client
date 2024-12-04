@@ -27,7 +27,11 @@ func main() {
 	rpcCommand := commands.SetRpcCommand{
 		RpcService: di.RpcService(),
 	}
-	addUserCommand := commands.AddUserCommand{
+	CreateUserCommand := commands.CreateUserCommand{
+		Storage:         di.DatabaseService(),
+		UsersRepository: di.UsersRepository(),
+	}
+	importUserIdentityCommand := commands.ImportUserIdentityCommand{
 		Storage:            di.DatabaseService(),
 		UsersRepository:    di.UsersRepository(),
 		PasswordManager:    di.GetPasswordManager(),
@@ -45,7 +49,7 @@ func main() {
 		CertificateService: di.GetCertificateService(),
 		KeysService:        di.GetKeyService(),
 	}
-	exportContactDetails := commands.ShareContactDetails{
+	generateIdentityCommand := commands.GenerateIdentityCommand{
 		Storage:            di.DatabaseService(),
 		UsersRepository:    di.UsersRepository(),
 		PasswordManager:    di.GetPasswordManager(),
@@ -74,15 +78,13 @@ func main() {
 		RegisterService:       di.GetRegisterService(),
 	}
 
-	user := 2
-	connectCommand.Execute(&user)
-
 	rootCmd.AddCommand(setupAccountCommand.Executable())
 	rootCmd.AddCommand(generateWalletCommand.Executable())
 	rootCmd.AddCommand(rpcCommand.Executable())
-	rootCmd.AddCommand(addUserCommand.Executable())
+	rootCmd.AddCommand(CreateUserCommand.Executable())
+	rootCmd.AddCommand(importUserIdentityCommand.Executable())
 	rootCmd.AddCommand(importContactsCommand.Executable())
-	rootCmd.AddCommand(exportContactDetails.Executable())
+	rootCmd.AddCommand(generateIdentityCommand.Executable())
 	rootCmd.AddCommand(usersCommand.Executable())
 	rootCmd.AddCommand(nodesCommand.Executable())
 	rootCmd.AddCommand(connectCommand.Executable())
