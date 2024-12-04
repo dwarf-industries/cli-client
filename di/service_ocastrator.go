@@ -49,6 +49,7 @@ func SetupServices() {
 	configured, err := passwordManager.LoadHash()
 	if !configured || err != nil {
 		fmt.Println("It appears that your account is not setup, please use 'client setup --help for more information'")
+		fmt.Println()
 	}
 	certificateService = &services.CertificateService{}
 	keyService = &services.KeyService{}
