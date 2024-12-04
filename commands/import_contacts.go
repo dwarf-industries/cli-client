@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/brianvoe/gofakeit/v6"
 	"github.com/spf13/cobra"
 
 	"client/interfaces"
@@ -23,18 +24,20 @@ type ImportContactsCommand struct {
 
 func (u *ImportContactsCommand) Executable() *cobra.Command {
 	return &cobra.Command{
-		Use:   "import-users [directory]",
-		Short: "Add a new users to the contact list located from directory path",
-		Args:  cobra.ExactArgs(0),
+		Use:   "import-users [users ([names])] [directory]",
+		Short: "Add a new users to the contact list located from directory path and generates users, if [names] is empty it will generate the names ",
+		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			path := args[0]
+			names := args[0]
+			namesSplit := strings.Split(names, ",")
+			path := args[1]
 			files, err := os.ReadDir(path)
 			if err != nil {
 				fmt.Println("Path not found aborting!")
 				os.Exit(1)
 			}
 
-			addUserCmd := &AddUserCommand{
+			importUserIdentityCommand := &ImportUserIdentityCommand{
 				Storage:            u.Storage,
 				PasswordManager:    u.PasswordManager,
 				UsersRepository:    u.UsersRepository,
@@ -44,7 +47,17 @@ func (u *ImportContactsCommand) Executable() *cobra.Command {
 				KeysService:        u.KeysService,
 			}
 
-			for _, f := range files {
+			if len(namesSplit) < len(files) {
+				gofakeit.Seed(0)
+
+				for i := len(namesSplit); i < len(files); i++ {
+					generateName := gofakeit.Name()
+					namesSplit[i] = generateName
+				}
+			}
+
+			for i, f := range files {
+				userName := namesSplit[i]
 				if f.IsDir() {
 					continue
 				}
@@ -53,7 +66,12 @@ func (u *ImportContactsCommand) Executable() *cobra.Command {
 					f.Name(),
 				}, "/")
 
-				addUserCmd.Execute(&combine)
+				created, err := u.UsersRepository.CreateUser(&userName)
+				if err != nil {
+					fmt.Println("Aborting, failed to create user")
+					os.Exit(1)
+				}
+				importUserIdentityCommand.Execute(&created, &combine)
 			}
 		},
 	}
