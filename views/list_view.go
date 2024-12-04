@@ -96,7 +96,7 @@ func (l ListView) View() string {
 
 		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.Name)
 	}
-	cost, err := l.feeSetter.GetCostPerKylobyte(&bind.CallOpts{})
+	cost, err := l.feeSetter.GetCostPerKilobyte(&bind.CallOpts{})
 	if err != nil {
 		fmt.Println("failed to get cost per kylobyte fee from the network!")
 	}
