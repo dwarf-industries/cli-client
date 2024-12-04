@@ -11,6 +11,7 @@ import (
 
 type SocketConnection struct {
 	connection *websocket.Conn
+	token      *string
 }
 
 func (s *SocketConnection) Connect(url *string, handshake *map[string]interface{}) bool {
@@ -43,7 +44,13 @@ func (s *SocketConnection) Connect(url *string, handshake *map[string]interface{
 	return true
 }
 
+func (s *SocketConnection) SetToken(token *string) {
+	s.token = token
+}
+
 func (s *SocketConnection) SendData(data *map[string]interface{}) *map[string]interface{} {
+	requestData := *data
+	requestData["sessionToken"] = *s.token
 	if err := s.connection.WriteJSON(data); err != nil {
 		fmt.Printf("Failed to send message: %v", err)
 		return nil
