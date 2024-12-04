@@ -1,16 +1,19 @@
 CREATE TABLE IF NOT EXISTS Keys(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    data TEXT NOT NULL,
-    identity INTEGER NOT NULL
+    encryption_certificate TEXT NOT NULL,
+    identity_certificate TEXT NOT NULL,
+    encryption_key TEXT NOT NULL,
+    priv TEXT NOT NULL,
+    order_sercret TEXT NOT NULL,
+    user_id integer NOT NULL
 );
-
 
 CREATE TABLE IF NOT EXISTS Users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    identity TEXT,
-    encryptionCertificate TEXT,
-    orderSecret TEXT,
+    identity_contract TEXT,
+    encryption_certificate TEXT,
+    order_secret TEXT,
     created_at TEXT DEFAULT (datetime('now','localtime'))
 );
 
