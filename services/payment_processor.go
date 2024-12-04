@@ -17,7 +17,7 @@ type PaymentProcessor struct {
 	RpcService    interfaces.RpcService
 }
 
-func (p *PaymentProcessor) PayNetworkTax(nodes *[][32]byte, tax *big.Int) bool {
+func (p *PaymentProcessor) PayNetworkTax(nodes *[]string, tax *big.Int) bool {
 	contractAddress := common.HexToAddress(os.Getenv("PAYMENT_LEDGER"))
 	contract, err := contracts.NewPaymentLedger(contractAddress, p.RpcService.GetClient())
 	if err != nil {
