@@ -13,4 +13,5 @@ type CertificateService interface {
 	IssueEncryptionCertificate(priv *rsa.PrivateKey) (*string, error)
 	EncryptWithCertificate(cert *x509.Certificate, plaintext []byte) ([]byte, error)
 	DecryptWithPrivateKey(privKey *rsa.PrivateKey, ciphertext []byte) ([]byte, error)
+	GenerateOrderSecret(name string) (*string, error)
 }

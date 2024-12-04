@@ -15,6 +15,8 @@ import (
 	"math/big"
 	"os"
 	"time"
+
+	"github.com/pquerna/otp/totp"
 )
 
 type CertificateService struct {
@@ -134,4 +136,17 @@ func (c *CertificateService) DecryptWithPrivateKey(privKey *rsa.PrivateKey, ciph
 		return nil, fmt.Errorf("decryption failed: %v", err)
 	}
 	return plaintext, nil
+}
+func (c *CertificateService) GenerateOrderSecret(name string) (*string, error) {
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      name,
+		AccountName: "shadowkeep@freeweb.com",
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	secret := key.Secret()
+	return &secret, nil
 }
