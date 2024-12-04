@@ -11,14 +11,14 @@ type KeysRepository struct {
 	storage interfaces.Storage
 }
 
-func (k *KeysRepository) UserKeys(identity *string) (*[]models.Keys, error) {
+func (k *KeysRepository) UserKeys(userId *int) (*[]models.Keys, error) {
 	sql := `
-		SELECT id, data, identity FROM Keys
-		WHERE identity = $1
+		SELECT id,identity_certificate, encryption_certificate, encryption_key, priv, order_sercret FROM Keys
+		WHERE user_id = $1
 	`
 
 	query, err := k.storage.Query(&sql, &[]interface{}{
-		&identity,
+		&userId,
 	})
 
 	if err != nil {
@@ -29,7 +29,14 @@ func (k *KeysRepository) UserKeys(identity *string) (*[]models.Keys, error) {
 	var userKeys []models.Keys
 	for query.Next() {
 		var key models.Keys
-		err := query.Scan(&key.Id, &key.Data, &key.Identity)
+		err := query.Scan(
+			&key.Id,
+			&key.IdentityCertifciate,
+			&key.EncryptionCertificate,
+			&key.EncryptionKey,
+			&key.IdenitityPrivateKey,
+			&key.OrderSecret,
+		)
 
 		if err != nil {
 			fmt.Println("Failed to bind data, to model key aborting")
@@ -42,14 +49,14 @@ func (k *KeysRepository) UserKeys(identity *string) (*[]models.Keys, error) {
 	return &userKeys, nil
 }
 
-func (k *KeysRepository) GetKeyByIdentity(identity *string) (*string, error) {
+func (k *KeysRepository) GetKeyByIdentity(id *int) (*string, error) {
 	sql := `
-		SELECT data FROM Keys
-		WHERE identity = $1
+		SELECT encryption_certificate FROM Keys
+		WHERE user_id = $1
 	`
 
 	querySingle := k.storage.QuerySingle(&sql, &[]interface{}{
-		&identity,
+		&id,
 	})
 
 	var key string
@@ -61,13 +68,19 @@ func (k *KeysRepository) GetKeyByIdentity(identity *string) (*string, error) {
 	return &key, nil
 }
 
-func (k *KeysRepository) AddKey(identity *string, data *string) bool {
+func (k *KeysRepository) AddKey(identityCertificate *string, encryptionCertificate *string, encKey *string, priv *string, orderSecret *string, userId *int) bool {
 	sql := `
-		INSERT INTO Keys (data, identity) VALUES ($1, $2)
+		INSERT INTO Keys (identity_certificate, encryption_certificate, encryption_key, priv, order_sercret, user_id)
+		VALUES ($1,$2,$3,$4,$5,$6)
 	`
 
 	err := k.storage.Exec(&sql, &[]interface{}{
-		&identity, &data,
+		&identityCertificate,
+		&encryptionCertificate,
+		&encKey,
+		&priv,
+		&orderSecret,
+		&userId,
 	})
 
 	return err == nil
