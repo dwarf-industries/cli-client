@@ -1,17 +1,23 @@
 package views
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"client/interfaces"
+	"client/models"
 )
 
 type ChatView struct {
 	NodeConnections  *map[string]interfaces.SocketConnection
 	PaymentProcessor interfaces.PaymentProcessor
+	nodePayments     map[string]string
+	user             *models.User
 }
 
-func (c *ChatView) Init() {
+func (c *ChatView) Init(user *models.User) {
+	c.user = user
+	c.nodePayments = make(map[string]string)
 	fmt.Printf("\n--- Chat Mode ---\n")
 	fmt.Printf("Connected nodes: %d\n", len(*c.NodeConnections))
 	fmt.Println("Type a message and press Enter to send to all connected nodes.")
@@ -30,20 +36,24 @@ func (c *ChatView) Init() {
 			fmt.Println("Exiting chat mode.")
 			break
 		}
-		var utilizedNodes [][32]byte
+		var utilizedNodes []string
 		messageSize := getMeasureForDataRequest([]byte(message))
 		data := map[string]interface{}{
 			"action": "pop-request",
 			"size":   messageSize,
 		}
-		for _, connection := range *c.NodeConnections {
-
+		for name, connection := range *c.NodeConnections {
 			response := *connection.SendData(&data)
-			paymentId := response["PaymentID"].([32]byte)
+			paymentIdData := response["PaymentID"].(string)
+			fmt.Println(paymentIdData)
+			pay, _ := hex.DecodeString(paymentIdData)
+			fmt.Println(len(pay))
+			paymentId := string(pay)
+			c.nodePayments[name] = paymentId
 			amount := response["Amount"]
+
 			utilizedNodes = append(utilizedNodes, paymentId)
 			fmt.Println(paymentId, amount)
-
 		}
 
 		tax := c.PaymentProcessor.CalculatePayment(messageSize)
@@ -53,16 +63,20 @@ func (c *ChatView) Init() {
 			continue
 		}
 
-		for _, connection := range *c.NodeConnections {
+		for name, connection := range *c.NodeConnections {
+			paymentId := c.nodePayments[name]
+			encoded := hex.EncodeToString([]byte(paymentId))
+			data := map[string]interface{}{
+				"action":           "store",
+				"encryptedMessage": []byte(message),
+				"for":              user.Identity,
+				"pop":              encoded,
+			}
 			response := *connection.SendData(&data)
-			paymentId := response["PaymentID"].([32]byte)
-			amount := response["Amount"]
-			utilizedNodes = append(utilizedNodes, paymentId)
-			fmt.Println(paymentId, amount)
+			fmt.Println(response)
+			delete(c.nodePayments, name)
 		}
-
 	}
-
 }
 
 func getMeasureForDataRequest(b []byte) int {
