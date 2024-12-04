@@ -61,9 +61,9 @@ func (s *SetupAccountCommand) Execute(wallet *string) {
 		fmt.Println("\n⚠️  ATTENTION: it appears that you wallet balance is empty, you will need to fund it in order to use it as operations wallet!")
 	}
 
-	fmt.Println("you can learn more about funding and why it's required under 'oracle network-operation-info'")
+	fmt.Println("you can learn more about funding and why it's required under 'client network-operation-info'")
 	infoHeader := color.New(color.BgCyan, color.Bold).SprintFunc()
-	fmt.Println(infoHeader("for more information regarding wallets 'oracle wallets-info'"))
+	fmt.Println(infoHeader("for more information regarding wallets 'client wallets-info'"))
 
 	os.Exit(0)
 }
