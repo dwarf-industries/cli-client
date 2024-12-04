@@ -1,7 +1,10 @@
 package models
 
 type Keys struct {
-	Id       int
-	Data     string
-	Identity string
+	Id                    int
+	EncryptionCertificate string
+	IdentityCertifciate   string
+	EncryptionKey         string
+	IdenitityPrivateKey   string
+	OrderSecret           string
 }
