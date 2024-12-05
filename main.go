@@ -69,6 +69,8 @@ func main() {
 	}
 
 	connectCommand := commands.ConnectCommand{
+		KeysRepository:        di.GetUserKeysRepository(),
+		CertificateService:    di.GetCertificateService(),
 		PasswordManager:       di.GetPasswordManager(),
 		WalletService:         di.WalletService(),
 		AuthenticationService: di.GetAuthenticationService(),
