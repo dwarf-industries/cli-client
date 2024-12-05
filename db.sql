@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS Keys(
     encryption_key TEXT NOT NULL,
     priv TEXT NOT NULL,
     order_sercret TEXT NOT NULL,
-    user_id integer NOT NULL
+    user_id INTEGER UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS Users (
