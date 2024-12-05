@@ -119,8 +119,8 @@ func (u *GenerateIdentityCommand) Execute(name *string, userId *int) {
 	encryptionPkHex := hex.EncodeToString(*encryptionPk)
 	encryptedOrderSecretHex := hex.EncodeToString(*orderSecretEncrypted)
 	keySaved := u.UserKeysRepository.AddKey(
-		encryptionCertificate,
 		cert,
+		encryptionCertificate,
 		&encryptionPkHex,
 		&encryptionIdentityHex,
 		&encryptedOrderSecretHex,
