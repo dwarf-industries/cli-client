@@ -7,7 +7,7 @@ import (
 )
 
 type CertificateService interface {
-	LoadCertificate(certFile string) (*x509.Certificate, error)
+	LoadCertificate(certData *[]byte) (*x509.Certificate, error)
 	LoadPrivateKey(keyFile string) (*rsa.PrivateKey, error)
 	IssueIdentityCertificate(pub ed25519.PublicKey, priv ed25519.PrivateKey) (*string, error)
 	IssueEncryptionCertificate(priv *rsa.PrivateKey) (*string, error)

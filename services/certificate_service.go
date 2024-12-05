@@ -7,6 +7,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
@@ -22,12 +23,8 @@ import (
 type CertificateService struct {
 }
 
-func (c *CertificateService) LoadCertificate(certFile string) (*x509.Certificate, error) {
-	certPEM, err := os.ReadFile(certFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read certificate file: %v", err)
-	}
-	block, _ := pem.Decode(certPEM)
+func (c *CertificateService) LoadCertificate(certData *[]byte) (*x509.Certificate, error) {
+	block, _ := pem.Decode(*certData)
 	if block == nil || block.Type != "CERTIFICATE" {
 		return nil, errors.New("failed to decode PEM block containing certificate")
 	}
@@ -129,12 +126,21 @@ func (c *CertificateService) EncryptWithCertificate(cert *x509.Certificate, plai
 }
 
 func (c *CertificateService) DecryptWithPrivateKey(privKey *rsa.PrivateKey, ciphertext []byte) ([]byte, error) {
-	hash := crypto.SHA256
+	decodedCiphertext, err := base64.StdEncoding.DecodeString(string(ciphertext))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode ciphertext: %v", err)
+	}
 
-	plaintext, err := rsa.DecryptOAEP(hash.New(), rand.Reader, privKey, ciphertext, nil)
+	if len(decodedCiphertext) > privKey.Size() {
+		return nil, fmt.Errorf("ciphertext too large for this key size")
+	}
+
+	hash := crypto.SHA256
+	plaintext, err := rsa.DecryptOAEP(hash.New(), rand.Reader, privKey, decodedCiphertext, nil)
 	if err != nil {
 		return nil, fmt.Errorf("decryption failed: %v", err)
 	}
+
 	return plaintext, nil
 }
 func (c *CertificateService) GenerateOrderSecret(name string) (*string, error) {
