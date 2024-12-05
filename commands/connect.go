@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/x509"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -24,6 +27,9 @@ type ConnectCommand struct {
 	SocketService         interfaces.SocketConnection
 	NodeRepository        repositories.NodesRepository
 	RegisterService       interfaces.RegisterService
+	KeysRepository        repositories.KeysRepository
+	CertificateService    interfaces.CertificateService
+	password              string
 }
 
 func (c *ConnectCommand) Executable() *cobra.Command {
@@ -53,6 +59,8 @@ func (c *ConnectCommand) Execute(userId *int) {
 	if err != nil {
 		panic("Active operation wallet not found")
 	}
+
+	c.password = *password
 	di.DatabaseService().Open()
 	defer di.DatabaseService().Close()
 
@@ -102,9 +110,33 @@ func (c *ConnectCommand) Execute(userId *int) {
 		establishedConnections[n.Name] = c.SocketService
 	}
 
+	key, err := c.KeysRepository.GetEncryptionPrivateKey(userId)
+	if err != nil {
+		panic("can't get decryption key for user")
+	}
+
+	keyBytes, err := hex.DecodeString(*key)
+	if err != nil {
+		panic("failed to decode hex")
+	}
+
+	decryptedKey, err := c.PasswordManager.Decrypt(keyBytes, []byte(c.password))
+	if err != nil {
+		fmt.Printf("Failed to parse RSA private key: %v\n", err)
+		return
+	}
+
+	privateKey, err := x509.ParsePKCS1PrivateKey(decryptedKey)
+	if err != nil {
+		fmt.Printf("Failed to parse RSA private key: %v\n", err)
+		return
+	}
+
 	chatView := views.ChatView{
-		PaymentProcessor: di.GetPaymentProcessor(),
-		NodeConnections:  &establishedConnections,
+		PaymentProcessor:      di.GetPaymentProcessor(),
+		NodeConnections:       &establishedConnections,
+		CertifciateService:    c.CertificateService,
+		CertificatePrivateKey: privateKey,
 	}
 	chatView.Init(&user)
 
@@ -138,15 +170,51 @@ func (c *ConnectCommand) ConnectToNode(node *models.Node, user *models.User) {
 		panic("couldn't generate session token")
 	}
 
+	keys, err := c.KeysRepository.UserKeys(&user.Id)
+	if err != nil {
+		panic("user doesn't have keys")
+	}
+
+	decodedIdentity, err := hex.DecodeString(keys.IdentityCertifciate)
+	if err != nil {
+		panic("failed to decode identity")
+	}
+
+	cert, err := c.CertificateService.LoadCertificate(&decodedIdentity)
+	if err != nil {
+		panic("failed to import certificate with decoded data")
+	}
+
+	privBytes, err := hex.DecodeString(keys.IdenitityPrivateKey)
+	if err != nil {
+		panic("failed to decode private key bytes")
+	}
+
+	privateKeyBytes, err := c.PasswordManager.Decrypt(privBytes, []byte(c.password))
+	if err != nil {
+		panic("failed to decrypt private key")
+	}
+
+	key := ed25519.NewKeyFromSeed(privateKeyBytes)
+	s, err := key.Sign(rand.Reader, cert.RawTBSCertificate, &ed25519.Options{})
+	if err != nil {
+		panic("failed to produce signature for certificate")
+	}
+
+	cert.PublicKey = key.Public()
+
 	encodeIdentity := hex.EncodeToString(user.Identity)
 	signatureHex := hex.EncodeToString(signature)
-
+	identitySignature := hex.EncodeToString(s)
+	certEncoded := hex.EncodeToString(cert.Raw)
 	handshake := map[string]interface{}{
 		"action":          "authenticate",
 		"address":         identity,
 		"certificate":     encodeIdentity,
 		"signedChallenge": signatureHex,
 		"sessionToken":    token,
+		"me":              certEncoded,
+		"signature":       identitySignature,
 	}
 
 	connected := c.SocketService.Connect(&url, &handshake)
