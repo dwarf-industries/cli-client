@@ -37,13 +37,12 @@ func (p *PaymentProcessor) PayNetworkTax(nodes *[]string, tax *big.Int) bool {
 	}
 
 	transactionOps.Value = tax
-	transaction, err := contract.RecordPayment(transactionOps, *nodes)
+	_, err = contract.RecordPayment(transactionOps, *nodes)
 	if err != nil {
 		fmt.Println("Failed to execute payment, aborting!")
 		return false
 	}
 
-	fmt.Println(transaction.Hash().Hex())
 	return true
 }
 
