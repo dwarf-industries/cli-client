@@ -5,5 +5,5 @@ type SocketConnection interface {
 	SubscribeToChanges() *chan map[string]interface{}
 	SetToken(token *string)
 	Disconnect() bool
-	SendData(data *map[string]interface{}) *map[string]interface{}
+	SendData(data *map[string]interface{}) bool
 }

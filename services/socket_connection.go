@@ -108,20 +108,15 @@ func (s *SocketConnection) SetToken(token *string) {
 	s.token = token
 }
 
-func (s *SocketConnection) SendData(data *map[string]interface{}) *map[string]interface{} {
+func (s *SocketConnection) SendData(data *map[string]interface{}) bool {
 	requestData := *data
 	requestData["sessionToken"] = *s.token
 	if err := s.connection.WriteJSON(data); err != nil {
 		fmt.Printf("Failed to send message: %v", err)
-		return nil
+		return false
 	}
 
-	var response map[string]interface{}
-	if err := s.connection.ReadJSON(&response); err != nil {
-		fmt.Printf("Failed to read handshake response: %v", err)
-		return nil
-	}
-	return &response
+	return true
 }
 
 func (s *SocketConnection) Disconnect() bool {
