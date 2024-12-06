@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
 	"client/di"
@@ -132,13 +133,19 @@ func (c *ConnectCommand) Execute(userId *int) {
 		return
 	}
 
-	chatView := views.ChatView{
-		PaymentProcessor:      di.GetPaymentProcessor(),
-		NodeConnections:       &establishedConnections,
-		CertifciateService:    c.CertificateService,
-		CertificatePrivateKey: privateKey,
+	chat := views.InitChatView(
+		&user,
+		&establishedConnections,
+		di.GetPaymentProcessor(),
+		c.CertificateService,
+		privateKey,
+	)
+
+	p := tea.NewProgram(chat)
+	if _, err := p.Run(); err != nil {
+		fmt.Printf("Alas, there's been an error: %v", err)
+		os.Exit(1)
 	}
-	chatView.Init(&user)
 
 	os.Exit(0)
 }
