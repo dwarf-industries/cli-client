@@ -193,12 +193,6 @@ func (r *WalletService) NewTransactor(privateKey *ecdsa.PrivateKey) (*bind.Trans
 		return nil, fmt.Errorf("failed to get nonce: %v", err)
 	}
 	auth.Nonce = big.NewInt(int64(nonce))
-	fmt.Println("Transaction details:")
-	fmt.Println("ChainID:", chainID)
-	fmt.Println("GasLimit:", auth.GasLimit)
-	fmt.Println("GasPrice:", auth.GasPrice)
-	fmt.Println("Nonce:", auth.Nonce)
-	fmt.Println("Block:", block)
 
 	return auth, nil
 }
