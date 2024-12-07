@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/glamour"
 	"github.com/spf13/cobra"
 
 	"client/di"
@@ -73,10 +74,21 @@ func (c *ConnectCommand) Execute(userId *int) {
 
 	selectedNodes, err := c.NodeRepository.Selected()
 	if err != nil || len(*selectedNodes) == 0 {
-		fmt.Println("There are no node preferences")
-		fmt.Println("Warning: Since there are no node preferences you're about to connect to the entire network for sharding")
-		fmt.Println("This can lead to expensive network transfers, are you sure you want  are you sure you want to proceed")
-		fmt.Println("Enter 'y' to accept or anything else to cancel the action")
+
+		in := `# There are no node preferences
+
+		Warning: Since there are no node preferences you're about to connect to the entire network for sharding
+		This can lead to expensive network transfers, are you sure you want  are you sure you want to proceed
+
+		Enter 'y' to accept or anything else to cancel the action
+		`
+
+		r, _ := glamour.NewTermRenderer( // detect background color and pick either the default dark or light theme
+			glamour.WithAutoStyle(),
+			glamour.WithWordWrap(120))
+
+		out, _ := r.Render(in)
+		fmt.Print(out)
 
 		var answer string
 		fmt.Scanf(answer)
