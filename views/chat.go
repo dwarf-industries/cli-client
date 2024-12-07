@@ -2,7 +2,7 @@ package views
 
 import (
 	"crypto/rsa"
-	"fmt"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -10,11 +10,18 @@ import (
 	"client/models"
 )
 
+type tickMsg struct{}
+
+type Message struct {
+	Sender  bool
+	Content string
+}
+
 type ChatView struct {
-	messages      []string
 	chatViewModel *ChatViewModel
 	width         int
 	height        int
+	msgCount      int
 }
 
 func InitChatView(user *models.User, connections *map[string]interfaces.SocketConnection,
@@ -46,7 +53,6 @@ func (c ChatView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			fmt.Println(c.chatViewModel.input)
 			go c.chatViewModel.ProcessInput()
 		case "backspace":
 			if len(c.chatViewModel.input) > 0 {
@@ -54,6 +60,7 @@ func (c ChatView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "ctrl+c", "esc":
 			return c, tea.Quit
+
 		default:
 			c.chatViewModel.input += msg.String()
 		}
@@ -61,7 +68,11 @@ func (c ChatView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		c.width = msg.Width
 		c.height = msg.Height
-
+	case Message:
+		c.msgCount += 1
+	case tickMsg:
+		c.msgCount++
+		return c, tick()
 	}
 
 	return c, nil
@@ -69,15 +80,29 @@ func (c ChatView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (c ChatView) Init() tea.Cmd {
 	c.chatViewModel.init()
-	return nil
+	c.chatViewModel.updateCallback = func(msg tea.Msg) {
+		c.Update(msg)
+	}
+	return tick()
+}
+
+func tick() tea.Cmd {
+	return tea.Tick(time.Second, func(time.Time) tea.Msg {
+		return tickMsg{}
+	})
 }
 
 func (c ChatView) View() string {
-	s := "Connection established with:" + c.chatViewModel.user.Name + " \n\n"
+	s := "Connection established with:" + c.chatViewModel.user.Name + " \n"
 
-	for _, msg := range c.messages {
-		s += msg + "\n\n"
+	for _, msg := range c.chatViewModel.messages {
+		if msg.Sender {
+			s += "ME: " + msg.Content + "\n"
+		} else {
+			s += c.chatViewModel.user.Name + ": " + msg.Content + "\n"
+		}
 	}
-	s += "Input: " + c.chatViewModel.input + "\n\n"
+
+	s += "Input: " + c.chatViewModel.input + "\n"
 	return s
 }

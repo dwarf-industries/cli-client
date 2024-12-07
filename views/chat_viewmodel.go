@@ -12,11 +12,14 @@ import (
 	"sync"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"client/interfaces"
 	"client/models"
 )
 
 type ChatViewModel struct {
+	messages              []Message
 	NodeConnections       *map[string]interfaces.SocketConnection
 	PaymentProcessor      interfaces.PaymentProcessor
 	CertifciateService    interfaces.CertificateService
@@ -30,6 +33,7 @@ type ChatViewModel struct {
 	message               string
 	input                 string
 	mu                    sync.Mutex
+	updateCallback        func(msg tea.Msg) // Callback to send updates to Bubble Tea
 }
 
 func (c *ChatViewModel) init() {
@@ -54,11 +58,15 @@ func (c *ChatViewModel) ProcessInput() {
 		c.input = ""
 		return
 	}
+
 	c.mu.Lock()
+	c.messages = append(c.messages, Message{
+		Sender:  true,
+		Content: message,
+	})
+	c.message = message
 	messageSize := getMeasureForDataRequest([]byte(message))
 	c.currentTax = c.PaymentProcessor.CalculatePayment(messageSize)
-	fmt.Print(c.currentTax)
-
 	data := map[string]interface{}{
 		"action": "pop-request",
 		"size":   messageSize,
@@ -114,10 +122,23 @@ func (c *ChatViewModel) processMessage(connection interfaces.SocketConnection, m
 		panic("failed to decrypt data aborting")
 	}
 	decryptedString := string(decryptedData)
-	fmt.Println(decryptedString)
+	c.mu.Lock()
+	c.messages = append(c.messages, Message{
+		Sender:  false,
+		Content: decryptedString,
+	})
 	connection.SendData(&map[string]interface{}{
 		"action": "AC",
 	})
+
+	if c.updateCallback != nil {
+		c.updateCallback(Message{
+			Sender:  false,
+			Content: decryptedString,
+		})
+	}
+	c.mu.Unlock()
+
 }
 
 func (c *ChatViewModel) popRequest(data map[string]interface{}) {
