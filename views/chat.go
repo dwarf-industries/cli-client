@@ -2,6 +2,7 @@ package views
 
 import (
 	"crypto/rsa"
+	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -11,7 +12,7 @@ import (
 
 type ChatView struct {
 	messages      []string
-	chatViewModel ChatViewModel
+	chatViewModel *ChatViewModel
 	width         int
 	height        int
 }
@@ -26,7 +27,7 @@ func InitChatView(user *models.User, connections *map[string]interfaces.SocketCo
 	}
 
 	chatView := ChatView{
-		chatViewModel: ChatViewModel{
+		chatViewModel: &ChatViewModel{
 			user:                  user,
 			nodePayments:          make(map[string]string),
 			encryptionCertificate: encryptionCertificate,
@@ -45,7 +46,8 @@ func (c ChatView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			c.chatViewModel.ProcessInput()
+			fmt.Println(c.chatViewModel.input)
+			go c.chatViewModel.ProcessInput()
 		case "backspace":
 			if len(c.chatViewModel.input) > 0 {
 				c.chatViewModel.input = c.chatViewModel.input[:len(c.chatViewModel.input)-1]
@@ -66,10 +68,7 @@ func (c ChatView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (c ChatView) Init() tea.Cmd {
-
-	for _, connection := range *c.chatViewModel.NodeConnections {
-		go c.chatViewModel.listenForNodeMessages(connection)
-	}
+	c.chatViewModel.init()
 	return nil
 }
 
@@ -79,6 +78,6 @@ func (c ChatView) View() string {
 	for _, msg := range c.messages {
 		s += msg + "\n\n"
 	}
-
+	s += "Input: " + c.chatViewModel.input + "\n\n"
 	return s
 }

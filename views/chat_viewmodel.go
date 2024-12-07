@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	"client/interfaces"
@@ -28,6 +29,13 @@ type ChatViewModel struct {
 	encryptionCertificate *x509.Certificate
 	message               string
 	input                 string
+	mu                    sync.Mutex
+}
+
+func (c *ChatViewModel) init() {
+	for _, connection := range *c.NodeConnections {
+		go c.listenForNodeMessages(connection)
+	}
 }
 
 func (c *ChatViewModel) listenForNodeMessages(connection interfaces.SocketConnection) {
@@ -46,8 +54,7 @@ func (c *ChatViewModel) ProcessInput() {
 		c.input = ""
 		return
 	}
-
-	c.input = ""
+	c.mu.Lock()
 	messageSize := getMeasureForDataRequest([]byte(message))
 	c.currentTax = c.PaymentProcessor.CalculatePayment(messageSize)
 	fmt.Print(c.currentTax)
@@ -64,6 +71,7 @@ func (c *ChatViewModel) ProcessInput() {
 		}
 		c.expectedNodes += 1
 	}
+	c.mu.Unlock()
 }
 
 func (c *ChatViewModel) handleNodeMessage(connection interfaces.SocketConnection, message map[string]interface{}) {
@@ -124,6 +132,7 @@ func (c *ChatViewModel) popRequest(data map[string]interface{}) {
 	if !paid {
 		fmt.Println("Transaction failed")
 	}
+	c.input = ""
 
 	c.expectedNodes -= 1
 
