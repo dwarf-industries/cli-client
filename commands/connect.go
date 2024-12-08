@@ -18,6 +18,7 @@ import (
 	"client/interfaces"
 	"client/models"
 	"client/repositories"
+	"client/services"
 	"client/views"
 )
 
@@ -26,7 +27,6 @@ type ConnectCommand struct {
 	WalletService         interfaces.WalletService
 	AuthenticationService interfaces.AuthenticationService
 	UsersRepository       repositories.UsersRepository
-	SocketService         interfaces.SocketConnection
 	NodeRepository        repositories.NodesRepository
 	RegisterService       interfaces.RegisterService
 	KeysRepository        repositories.KeysRepository
@@ -119,8 +119,8 @@ func (c *ConnectCommand) Execute(userId *int) {
 
 	establishedConnections := make(map[string]interfaces.SocketConnection)
 	for _, n := range currentNodes {
-		c.ConnectToNode(&n, &user)
-		establishedConnections[n.Name] = c.SocketService
+		socket := c.ConnectToNode(&n, &user)
+		establishedConnections[n.Name] = socket
 	}
 
 	key, err := c.KeysRepository.GetEncryptionPrivateKey(userId)
@@ -162,7 +162,8 @@ func (c *ConnectCommand) Execute(userId *int) {
 	os.Exit(0)
 }
 
-func (c *ConnectCommand) ConnectToNode(node *models.Node, user *models.User) {
+func (c *ConnectCommand) ConnectToNode(node *models.Node, user *models.User) interfaces.SocketConnection {
+	socketService := &services.SocketConnection{}
 	wallet, err := c.WalletService.ActiveWallet()
 	if err != nil {
 		fmt.Println("No wallet set, aborting")
@@ -181,7 +182,7 @@ func (c *ConnectCommand) ConnectToNode(node *models.Node, user *models.User) {
 	signature, err := c.WalletService.SignMessage(*challenge)
 	if err != nil {
 		fmt.Printf("Failed to produce a valid signature for the given challenge: %s", *challenge)
-		return
+		return nil
 	}
 
 	token, err := c.AuthenticationService.GenerateSessionToken(&url)
@@ -236,14 +237,15 @@ func (c *ConnectCommand) ConnectToNode(node *models.Node, user *models.User) {
 		"signature":       identitySignature,
 	}
 
-	connected := c.SocketService.Connect(&url, &handshake)
+	connected := socketService.Connect(&url, &handshake)
 
 	if !connected {
-		panic("Failed to connect to node")
+		fmt.Println("Failed to connect to node")
+		return nil
 	}
 
-	c.SocketService.SetToken(token)
-
+	socketService.SetToken(token)
+	return socketService
 }
 
 func (c *ConnectCommand) selectedNode(name string, nodes *[]models.Node) *models.Node {
