@@ -14,6 +14,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"client/di"
 	"client/interfaces"
 	"client/models"
 )
@@ -32,6 +33,9 @@ type ChatViewModel struct {
 	encryptionCertificate *x509.Certificate
 	message               string
 	input                 string
+	nodeChunks            int
+	chunkBytes            [][]byte
+	receivedChunks        map[string]map[int]string
 	mu                    sync.Mutex
 	updateCallback        func(msg tea.Msg) // Callback to send updates to Bubble Tea
 }
@@ -67,18 +71,28 @@ func (c *ChatViewModel) ProcessInput() {
 	c.message = message
 	messageSize := getMeasureForDataRequest([]byte(message))
 	c.currentTax = c.PaymentProcessor.CalculatePayment(messageSize)
-	data := map[string]interface{}{
-		"action": "pop-request",
-		"size":   messageSize,
-	}
+
+	c.nodeChunks = len([]byte(message)) / len(*c.NodeConnections)
+	c.chunkBytes = splitIntoChunks([]byte(c.message), c.nodeChunks)
 
 	c.expectedNodes = 0
+	var cIndex int
+	fmt.Println(c.NodeConnections)
 	for _, connection := range *c.NodeConnections {
+
+		data := map[string]interface{}{
+			"action": "pop-request",
+			"size":   len(c.chunkBytes[cIndex]),
+		}
+
 		if ok := connection.SendData(&data); !ok {
 			panic("failed to send request")
 		}
 		c.expectedNodes += 1
+		cIndex++
 	}
+
+	cIndex = 0
 	c.mu.Unlock()
 }
 
@@ -104,6 +118,7 @@ func (c *ChatViewModel) processMessage(connection interfaces.SocketConnection, m
 		return
 	}
 
+	// Parse the metadata from the chunk
 	dataBytes, err := json.Marshal(data)
 	if err != nil {
 		log.Printf("Failed to marshal data: %v\n", err)
@@ -121,24 +136,54 @@ func (c *ChatViewModel) processMessage(connection interfaces.SocketConnection, m
 	if err != nil {
 		panic("failed to decrypt data aborting")
 	}
-	decryptedString := string(decryptedData)
-	c.mu.Lock()
-	c.messages = append(c.messages, Message{
-		Sender:  false,
-		Content: decryptedString,
-	})
-	connection.SendData(&map[string]interface{}{
-		"action": "AC",
-	})
 
-	if c.updateCallback != nil {
-		c.updateCallback(Message{
+	c.mu.Lock()
+	messageID := content.MessageID
+	chunkIndex := content.ChunkIndex
+	totalChunks := content.TotalChunks
+
+	if c.receivedChunks[messageID] == nil {
+		c.receivedChunks[messageID] = make(map[int]string)
+	}
+
+	c.receivedChunks[messageID][chunkIndex] = string(decryptedData)
+
+	if len(c.receivedChunks[messageID]) == totalChunks {
+		chunkOrder := make([]int, totalChunks)
+		for i := 0; i < totalChunks; i++ {
+			chunkOrder[i] = i
+		}
+
+		chunkOrder = di.GetDataOrderService().ReconstructChunkOrder(messageID, string(c.user.OrderSecret), totalChunks)
+
+		var reassembledMessage string
+		for _, index := range chunkOrder {
+			reassembledMessage += c.receivedChunks[messageID][index]
+		}
+
+		decryptedMessage, err := c.CertifciateService.DecryptWithPrivateKey(c.CertificatePrivateKey, []byte(reassembledMessage))
+		if err != nil {
+			log.Printf("Failed to decrypt full message: %v\n", err)
+			return
+		}
+
+		c.mu.Lock()
+		c.messages = append(c.messages, Message{
 			Sender:  false,
-			Content: decryptedString,
+			Content: string(decryptedMessage),
 		})
+		c.mu.Unlock()
+
+		if c.updateCallback != nil {
+			c.updateCallback(Message{
+				Sender:  false,
+				Content: string(decryptedMessage),
+			})
+		}
+
+		delete(c.receivedChunks, messageID)
 	}
 	c.mu.Unlock()
-
 }
 
 func (c *ChatViewModel) popRequest(data map[string]interface{}) {
@@ -168,21 +213,32 @@ func (c *ChatViewModel) sendMessage() {
 		panic("couldn't load certificate")
 	}
 
-	encryptedMessage, err := c.CertifciateService.EncryptWithCertificate(c.encryptionCertificate, []byte(c.message))
-	if err != nil {
-		panic("failed to encrypt data")
-	}
-
 	certBytes := hex.EncodeToString(cert.Raw)
-	for name, connection := range *c.NodeConnections {
+
+	// Generate a unique message ID (could be a timestamp or random UUID)
+	messageID := di.GetDataOrderService().GenerateMessageID()
+
+	shuffledNodes := di.GetDataOrderService().ShuffleNodes(string(c.user.OrderSecret), *c.NodeConnections)
+
+	var cIndex int
+	for _, name := range shuffledNodes {
+		connection := (*c.NodeConnections)[name]
+		encryptedMessage, err := c.CertifciateService.EncryptWithCertificate(c.encryptionCertificate, c.chunkBytes[cIndex])
+		if err != nil {
+			panic("failed to encrypt data")
+		}
+
 		paymentId := c.nodePayments[name]
 		encoded := hex.EncodeToString([]byte(paymentId))
 
 		data := map[string]interface{}{
 			"action":           "store",
 			"encryptedMessage": encryptedMessage,
+			"messageID":        messageID,
 			"for":              certBytes,
 			"pop":              encoded,
+			"chunkIndex":       cIndex,
+			"totalChunks":      len(shuffledNodes),
 		}
 
 		if ok := connection.SendData(&data); !ok {
@@ -190,7 +246,22 @@ func (c *ChatViewModel) sendMessage() {
 		}
 
 		delete(c.nodePayments, name)
+		cIndex++
 	}
+
+	cIndex = 0
+}
+
+func splitIntoChunks(data []byte, chunkSize int) [][]byte {
+	var chunks [][]byte
+	for i := 0; i < len(data); i += chunkSize {
+		end := i + chunkSize
+		if end > len(data) {
+			end = len(data)
+		}
+		chunks = append(chunks, data[i:end])
+	}
+	return chunks
 }
 
 func getMeasureForDataRequest(b []byte) int {
