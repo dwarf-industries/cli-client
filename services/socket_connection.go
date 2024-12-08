@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -16,9 +17,12 @@ type SocketConnection struct {
 	messageCh  chan map[string]interface{}
 	url        *string
 	handshake  *map[string]interface{}
+	mu         sync.Mutex // Add a mutex for thread-safe writes
 }
 
 func (s *SocketConnection) Connect(url *string, handshake *map[string]interface{}) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	socketUrl := fmt.Sprintf("wss://%s/v1/rlt/ws", strings.TrimPrefix(*url, "https://"))
 	headers := http.Header{}
 
@@ -71,7 +75,9 @@ func (s *SocketConnection) reconnect() {
 
 func (s *SocketConnection) handlePing() {
 	for {
+		s.mu.Lock()
 		err := s.connection.WriteMessage(websocket.PingMessage, nil)
+		s.mu.Unlock()
 		if err != nil {
 			log.Printf("Ping failed, WebSocket might be disconnected: %v", err)
 			close(s.messageCh)
@@ -109,6 +115,9 @@ func (s *SocketConnection) SetToken(token *string) {
 }
 
 func (s *SocketConnection) SendData(data *map[string]interface{}) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	fmt.Println(*s.url)
 	requestData := *data
 	requestData["sessionToken"] = *s.token
 	if err := s.connection.WriteJSON(data); err != nil {
