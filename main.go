@@ -4,13 +4,54 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/charmbracelet/glamour"
 	"github.com/spf13/cobra"
 
 	"client/commands"
 	"client/di"
 )
 
+func logo() {
+	in := `
+     ████████▄     ▄████████    ▄████████    ▄████████ ███▄▄▄▄   ████████▄
+     ███   ▀███   ███    ███   ███    ███   ███    ███ ███▀▀▀██▄ ███   ▀███
+     ███    ███   ███    █▀    ███    █▀    ███    █▀  ███   ███ ███    ███
+     ███    ███  ▄███▄▄▄      ▄███▄▄▄      ▄███▄▄▄     ███   ███ ███    ███
+     ███    ███ ▀▀███▀▀▀     ▀▀███▀▀▀     ▀▀███▀▀▀     ███   ███ ███    ███
+     ███    ███   ███    █▄    ███          ███    █▄  ███   ███ ███    ███
+     ███   ▄███   ███    ███   ███          ███    ███ ███   ███ ███   ▄███
+     ████████▀    ██████████   ███          ██████████  ▀█   █▀  ████████▀
+
+     ████████▄     ▄████████ ███▄▄▄▄   ▄██   ▄
+     ███   ▀███   ███    ███ ███▀▀▀██▄ ███   ██▄
+     ███    ███   ███    █▀  ███   ███ ███▄▄▄███
+     ███    ███  ▄███▄▄▄     ███   ███ ▀▀▀▀▀▀███
+     ███    ███ ▀▀███▀▀▀     ███   ███ ▄██   ███
+     ███    ███   ███    █▄  ███   ███ ███   ███
+     ███   ▄███   ███    ███ ███   ███ ███   ███
+     ████████▀    ██████████  ▀█   █▀   ▀█████▀
+
+     ████████▄     ▄████████    ▄███████▄  ▄██████▄     ▄████████    ▄████████
+     ███   ▀███   ███    ███   ███    ███ ███    ███   ███    ███   ███    ███
+     ███    ███   ███    █▀    ███    ███ ███    ███   ███    █▀    ███    █▀
+     ███    ███  ▄███▄▄▄       ███    ███ ███    ███   ███         ▄███▄▄▄
+     ███    ███ ▀▀███▀▀▀     ▀█████████▀  ███    ███ ▀███████████ ▀▀███▀▀▀
+     ███    ███   ███    █▄    ███        ███    ███          ███   ███    █▄
+     ███   ▄███   ███    ███   ███        ███    ███    ▄█    ███   ███    ███
+     ████████▀    ██████████  ▄████▀       ▀██████▀   ▄████████▀    ██████████
+
+	`
+
+	r, _ := glamour.NewTermRenderer(
+		glamour.WithAutoStyle(),
+		glamour.WithWordWrap(120))
+
+	out, _ := r.Render(in)
+	fmt.Print(out)
+}
+
 func main() {
+	logo()
 	di.SetupServices()
 	di.Setup()
 	var rootCmd = &cobra.Command{
@@ -75,7 +116,6 @@ func main() {
 		WalletService:         di.WalletService(),
 		AuthenticationService: di.GetAuthenticationService(),
 		UsersRepository:       di.UsersRepository(),
-		SocketService:         di.GetSocketService(),
 		NodeRepository:        di.GetNodesRepository(),
 		RegisterService:       di.GetRegisterService(),
 	}
