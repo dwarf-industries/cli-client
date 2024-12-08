@@ -23,6 +23,7 @@ var registerService interfaces.RegisterService
 var authenticationService interfaces.AuthenticationService
 var socketService interfaces.SocketConnection
 var paymentProcessor interfaces.PaymentProcessor
+var dataOrderService interfaces.DataOrderService
 
 func SetupServices() {
 	err := godotenv.Load(".env")
@@ -66,6 +67,7 @@ func SetupServices() {
 		WalletService: walletService,
 		RpcService:    rpcService,
 	}
+	dataOrderService = &services.DataOrderService{}
 }
 
 func setupDatabase() interfaces.Storage {
@@ -142,6 +144,10 @@ func GetSocketService() interfaces.SocketConnection {
 
 func GetPaymentProcessor() interfaces.PaymentProcessor {
 	return paymentProcessor
+}
+
+func GetDataOrderService() interfaces.DataOrderService {
+	return dataOrderService
 }
 
 func getExecutablePath() string {
