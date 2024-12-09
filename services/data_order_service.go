@@ -1,7 +1,6 @@
 package services
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"math/rand"
 	"sort"
@@ -40,34 +39,14 @@ func (d *DataOrderService) HashOrderSecret(orderSecret string) int64 {
 	}
 	return hashValue
 }
+func (c *DataOrderService) ShuffleChunks(orderSecret string, chunkIndices []int) []int {
+	// Use the same seed derived from the orderSecret to shuffle the chunk indices
+	seed := c.HashOrderSecret(orderSecret)
 
-func (s *DataOrderService) ReconstructChunkOrder(messageID, orderSecret string, chunkCount int) []int {
-	seed := s.hashMessageIDAndSecret(messageID, orderSecret)
-	rng := rand.New(rand.NewSource(seed))
+	rand.Seed(seed)
+	rand.Shuffle(len(chunkIndices), func(i, j int) {
+		chunkIndices[i], chunkIndices[j] = chunkIndices[j], chunkIndices[i]
+	})
 
-	chunkOrder := make([]int, chunkCount)
-	for i := 0; i < len(chunkOrder); i++ {
-		chunkOrder[i] = i
-	}
-
-	for i := len(chunkOrder) - 1; i > 0; i-- {
-		j := rng.Intn(i + 1)
-		chunkOrder[i], chunkOrder[j] = chunkOrder[j], chunkOrder[i]
-	}
-
-	return chunkOrder
-}
-
-func (s *DataOrderService) hashMessageIDAndSecret(messageID, orderSecret string) int64 {
-	combined := messageID + orderSecret
-
-	hash := sha256.New()
-	hash.Write([]byte(combined))
-	hashBytes := hash.Sum(nil)
-
-	seed := int64(0)
-	for i := 0; i < 8 && i < len(hashBytes); i++ {
-		seed = (seed << 8) | int64(hashBytes[i])
-	}
-	return seed
+	return chunkIndices
 }
