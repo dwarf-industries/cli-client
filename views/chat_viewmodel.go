@@ -37,10 +37,11 @@ type ChatViewModel struct {
 	chunkBytes            [][]byte
 	receivedChunks        map[string]map[int]string
 	mu                    sync.Mutex
-	updateCallback        func(msg tea.Msg) // Callback to send updates to Bubble Tea
+	updateCallback        func(msg tea.Msg)
 }
 
 func (c *ChatViewModel) init() {
+	c.receivedChunks = make(map[string]map[int]string)
 	for _, connection := range *c.NodeConnections {
 		go c.listenForNodeMessages(connection)
 	}
@@ -50,12 +51,11 @@ func (c *ChatViewModel) listenForNodeMessages(connection interfaces.SocketConnec
 	for {
 		select {
 		case message := <-*connection.SubscribeToChanges():
-			c.handleNodeMessage(connection, message)
+			c.handleNodeMessage(message)
 		case <-time.After(10 * time.Second):
 		}
 	}
 }
-
 func (c *ChatViewModel) ProcessInput() {
 	message := strings.TrimSpace(c.input)
 	if message == "/exit" {
@@ -69,17 +69,38 @@ func (c *ChatViewModel) ProcessInput() {
 		Content: message,
 	})
 	c.message = message
-	messageSize := getMeasureForDataRequest([]byte(message))
+
+	messageSize := len([]byte(message))
+
+	numNodes := len(*c.NodeConnections)
+	if numNodes == 0 {
+		panic("no nodes available")
+	}
+
+	baseChunkSize := messageSize / numNodes
+
+	remainder := messageSize % numNodes
+
+	var chunks [][]byte
+	startIndex := 0
+	for i := 0; i < numNodes; i++ {
+		chunkSize := baseChunkSize
+		if i < remainder {
+			chunkSize++
+		}
+
+		endIndex := startIndex + chunkSize
+		chunks = append(chunks, []byte(message)[startIndex:endIndex])
+		startIndex = endIndex
+	}
+
+	c.chunkBytes = chunks
+	c.expectedNodes = numNodes
+
+	c.nodeChunks = numNodes
 	c.currentTax = c.PaymentProcessor.CalculatePayment(messageSize)
-
-	c.nodeChunks = len([]byte(message)) / len(*c.NodeConnections)
-	c.chunkBytes = splitIntoChunks([]byte(c.message), c.nodeChunks)
-
-	c.expectedNodes = 0
 	var cIndex int
-	fmt.Println(c.NodeConnections)
 	for _, connection := range *c.NodeConnections {
-
 		data := map[string]interface{}{
 			"action": "pop-request",
 			"size":   len(c.chunkBytes[cIndex]),
@@ -88,15 +109,13 @@ func (c *ChatViewModel) ProcessInput() {
 		if ok := connection.SendData(&data); !ok {
 			panic("failed to send request")
 		}
-		c.expectedNodes += 1
 		cIndex++
 	}
 
-	cIndex = 0
 	c.mu.Unlock()
 }
 
-func (c *ChatViewModel) handleNodeMessage(connection interfaces.SocketConnection, message map[string]interface{}) {
+func (c *ChatViewModel) handleNodeMessage(message map[string]interface{}) {
 	var currentAction string
 	var ok bool
 	if currentAction, ok = message["action"].(string); !ok {
@@ -105,20 +124,20 @@ func (c *ChatViewModel) handleNodeMessage(connection interfaces.SocketConnection
 
 	switch currentAction {
 	case "message":
-		c.processMessage(connection, message)
+		c.processMessage(message)
 	case "pop":
 		c.popRequest(message)
 	}
 }
 
-func (c *ChatViewModel) processMessage(connection interfaces.SocketConnection, message map[string]interface{}) {
+func (c *ChatViewModel) processMessage(message map[string]interface{}) {
+	c.mu.Lock()
 	data, ok := message["data"].(map[string]interface{})
 	if !ok {
 		log.Println("Invalid data format: expected a map")
 		return
 	}
 
-	// Parse the metadata from the chunk
 	dataBytes, err := json.Marshal(data)
 	if err != nil {
 		log.Printf("Failed to marshal data: %v\n", err)
@@ -137,7 +156,6 @@ func (c *ChatViewModel) processMessage(connection interfaces.SocketConnection, m
 		panic("failed to decrypt data aborting")
 	}
 
-	c.mu.Lock()
 	messageID := content.MessageID
 	chunkIndex := content.ChunkIndex
 	totalChunks := content.TotalChunks
@@ -154,30 +172,20 @@ func (c *ChatViewModel) processMessage(connection interfaces.SocketConnection, m
 			chunkOrder[i] = i
 		}
 
-		chunkOrder = di.GetDataOrderService().ReconstructChunkOrder(messageID, string(c.user.OrderSecret), totalChunks)
-
 		var reassembledMessage string
 		for _, index := range chunkOrder {
 			reassembledMessage += c.receivedChunks[messageID][index]
 		}
 
-		decryptedMessage, err := c.CertifciateService.DecryptWithPrivateKey(c.CertificatePrivateKey, []byte(reassembledMessage))
-		if err != nil {
-			log.Printf("Failed to decrypt full message: %v\n", err)
-			return
-		}
-
-		c.mu.Lock()
 		c.messages = append(c.messages, Message{
 			Sender:  false,
-			Content: string(decryptedMessage),
+			Content: reassembledMessage,
 		})
-		c.mu.Unlock()
 
 		if c.updateCallback != nil {
 			c.updateCallback(Message{
 				Sender:  false,
-				Content: string(decryptedMessage),
+				Content: reassembledMessage,
 			})
 		}
 
@@ -193,16 +201,15 @@ func (c *ChatViewModel) popRequest(data map[string]interface{}) {
 	paymentId := string(pay)
 	c.nodePayments[data["identifier"].(string)] = paymentId
 	c.utilizedNodes = append(c.utilizedNodes, paymentId)
-
-	paid := c.PaymentProcessor.PayNetworkTax(&c.utilizedNodes, c.currentTax)
-	if !paid {
-		fmt.Println("Transaction failed")
-	}
-	c.input = ""
-
 	c.expectedNodes -= 1
-
 	if c.expectedNodes == 0 {
+
+		paid := c.PaymentProcessor.PayNetworkTax(&c.utilizedNodes, c.currentTax)
+		if !paid {
+			fmt.Println("Transaction failed")
+		}
+		c.input = ""
+
 		c.sendMessage()
 	}
 }
@@ -215,9 +222,7 @@ func (c *ChatViewModel) sendMessage() {
 
 	certBytes := hex.EncodeToString(cert.Raw)
 
-	// Generate a unique message ID (could be a timestamp or random UUID)
 	messageID := di.GetDataOrderService().GenerateMessageID()
-
 	shuffledNodes := di.GetDataOrderService().ShuffleNodes(string(c.user.OrderSecret), *c.NodeConnections)
 
 	var cIndex int
@@ -250,20 +255,4 @@ func (c *ChatViewModel) sendMessage() {
 	}
 
 	cIndex = 0
-}
-
-func splitIntoChunks(data []byte, chunkSize int) [][]byte {
-	var chunks [][]byte
-	for i := 0; i < len(data); i += chunkSize {
-		end := i + chunkSize
-		if end > len(data) {
-			end = len(data)
-		}
-		chunks = append(chunks, data[i:end])
-	}
-	return chunks
-}
-
-func getMeasureForDataRequest(b []byte) int {
-	return len(b)
 }
