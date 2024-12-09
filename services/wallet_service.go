@@ -119,8 +119,7 @@ func (w *WalletService) SignMessage(message []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to access active wallet: %v", err)
 	}
 
-	addressHex := crypto.PubkeyToAddress(privateKey.PublicKey).Hex()
-	fmt.Println("Wallet address:", addressHex)
+	_ = crypto.PubkeyToAddress(privateKey.PublicKey).Hex()
 
 	hash := crypto.Keccak256Hash([]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(message), message)))
 	signature, err := crypto.Sign(hash.Bytes(), privateKey)
@@ -176,13 +175,13 @@ func (r *WalletService) NewTransactor(privateKey *ecdsa.PrivateKey) (*bind.Trans
 		return nil, fmt.Errorf("failed to create transactor: %v", err)
 	}
 
-	auth.GasLimit = uint64(300000)
+	// auth.GasLimit = uint64(300000)
 
-	auth.GasPrice, err = r.RpcService.GetClient().SuggestGasPrice(context.Background())
-	if err != nil {
-		auth.GasPrice = big.NewInt(20000000000)
-		fmt.Println("Warning: Failed to suggest gas price, using fallback value")
-	}
+	// auth.GasPrice, err = r.RpcService.GetClient().SuggestGasPrice(context.Background())
+	// if err != nil {
+	// 	auth.GasPrice = big.NewInt(20000000000)
+	// 	fmt.Println("Warning: Failed to suggest gas price, using fallback value")
+	// }
 
 	block, err := r.RpcService.GetClient().BlockNumber(context.Background())
 	if err != nil {
