@@ -17,7 +17,7 @@ type SocketConnection struct {
 	messageCh  chan map[string]interface{}
 	url        *string
 	handshake  *map[string]interface{}
-	mu         sync.Mutex // Add a mutex for thread-safe writes
+	mu         sync.Mutex
 }
 
 func (s *SocketConnection) Connect(url *string, handshake *map[string]interface{}) bool {
@@ -32,8 +32,6 @@ func (s *SocketConnection) Connect(url *string, handshake *map[string]interface{
 		return false
 	}
 
-	fmt.Println("Connected to WebSocket")
-
 	if err := conn.WriteJSON(handshake); err != nil {
 		log.Printf("Failed to send handshake: %v", err)
 		return false
@@ -44,7 +42,6 @@ func (s *SocketConnection) Connect(url *string, handshake *map[string]interface{
 		log.Printf("Failed to read handshake response: %v", err)
 		return false
 	}
-	fmt.Printf("Handshake response: %v\n", authResponse)
 
 	if authResponse["State"] != "Authenticated" {
 		log.Printf("Authentication failed: %v", authResponse)
@@ -117,7 +114,6 @@ func (s *SocketConnection) SetToken(token *string) {
 func (s *SocketConnection) SendData(data *map[string]interface{}) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	fmt.Println(*s.url)
 	requestData := *data
 	requestData["sessionToken"] = *s.token
 	if err := s.connection.WriteJSON(data); err != nil {

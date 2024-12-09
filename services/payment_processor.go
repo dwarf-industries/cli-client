@@ -29,7 +29,6 @@ func (p *PaymentProcessor) PayNetworkTax(nodes *[]string, tax *big.Int) bool {
 		fmt.Println("Wallet locked, aborting!")
 		return false
 	}
-
 	transactionOps, err := p.WalletService.NewTransactor(wallet)
 	if err != nil {
 		fmt.Println("Failed to generate transaction options for active wallet, aborting")
