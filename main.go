@@ -4,58 +4,28 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/charmbracelet/glamour"
 	"github.com/spf13/cobra"
 
 	"client/commands"
+	"client/components"
 	"client/di"
 )
 
-func logo() {
-	in := `
-     ████████▄     ▄████████    ▄████████    ▄████████ ███▄▄▄▄   ████████▄
-     ███   ▀███   ███    ███   ███    ███   ███    ███ ███▀▀▀██▄ ███   ▀███
-     ███    ███   ███    █▀    ███    █▀    ███    █▀  ███   ███ ███    ███
-     ███    ███  ▄███▄▄▄      ▄███▄▄▄      ▄███▄▄▄     ███   ███ ███    ███
-     ███    ███ ▀▀███▀▀▀     ▀▀███▀▀▀     ▀▀███▀▀▀     ███   ███ ███    ███
-     ███    ███   ███    █▄    ███          ███    █▄  ███   ███ ███    ███
-     ███   ▄███   ███    ███   ███          ███    ███ ███   ███ ███   ▄███
-     ████████▀    ██████████   ███          ██████████  ▀█   █▀  ████████▀
-
-     ████████▄     ▄████████ ███▄▄▄▄   ▄██   ▄
-     ███   ▀███   ███    ███ ███▀▀▀██▄ ███   ██▄
-     ███    ███   ███    █▀  ███   ███ ███▄▄▄███
-     ███    ███  ▄███▄▄▄     ███   ███ ▀▀▀▀▀▀███
-     ███    ███ ▀▀███▀▀▀     ███   ███ ▄██   ███
-     ███    ███   ███    █▄  ███   ███ ███   ███
-     ███   ▄███   ███    ███ ███   ███ ███   ███
-     ████████▀    ██████████  ▀█   █▀   ▀█████▀
-
-     ████████▄     ▄████████    ▄███████▄  ▄██████▄     ▄████████    ▄████████
-     ███   ▀███   ███    ███   ███    ███ ███    ███   ███    ███   ███    ███
-     ███    ███   ███    █▀    ███    ███ ███    ███   ███    █▀    ███    █▀
-     ███    ███  ▄███▄▄▄       ███    ███ ███    ███   ███         ▄███▄▄▄
-     ███    ███ ▀▀███▀▀▀     ▀█████████▀  ███    ███ ▀███████████ ▀▀███▀▀▀
-     ███    ███   ███    █▄    ███        ███    ███          ███   ███    █▄
-     ███   ▄███   ███    ███   ███        ███    ███    ▄█    ███   ███    ███
-     ████████▀    ██████████  ▄████▀       ▀██████▀   ▄████████▀    ██████████
-
-	`
-
-	r, _ := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
-		glamour.WithWordWrap(120))
-
-	out, _ := r.Render(in)
-	fmt.Print(out)
-}
-
 func main() {
-	logo()
 	di.SetupServices()
 	di.Setup()
+
 	var rootCmd = &cobra.Command{
 		Use: "client",
+		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) == 0 {
+				logo := components.Logo{}
+				logo.Init()
+
+				_ = cmd.Help()
+				os.Exit(0)
+			}
+		},
 	}
 
 	setupAccountCommand := commands.SetupAccountCommand{
@@ -119,6 +89,9 @@ func main() {
 		NodeRepository:        di.GetNodesRepository(),
 		RegisterService:       di.GetRegisterService(),
 	}
+
+	user := 2
+	connectCommand.Execute(&user)
 
 	rootCmd.AddCommand(setupAccountCommand.Executable())
 	rootCmd.AddCommand(generateWalletCommand.Executable())
