@@ -55,8 +55,6 @@ func (i *IdentityService) Verify(ip string, expected string) bool {
 		return false
 	}
 
-	fmt.Printf("Response status: %s\n", resp.Status)
-
 	var hexData string
 	if err := json.Unmarshal(body, &hexData); err != nil {
 		return false
