@@ -110,7 +110,7 @@ func (u *UsersRepository) GetUserById(userId int) (models.User, error) {
 
 	}
 	if orderSecret != nil {
-		user.OrderSecret, _ = hex.DecodeString(*orderSecret)
+		user.OrderSecret = []byte(*orderSecret)
 	}
 
 	user.CreatedAt, _ = time.Parse("", createdTime)
