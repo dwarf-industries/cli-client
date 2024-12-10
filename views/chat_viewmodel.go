@@ -38,6 +38,7 @@ type ChatViewModel struct {
 	receivedChunks        map[string]map[int]string
 	mu                    sync.Mutex
 	updateCallback        func(msg tea.Msg)
+	password              *[]byte
 }
 
 func (c *ChatViewModel) init() {
@@ -123,11 +124,51 @@ func (c *ChatViewModel) handleNodeMessage(message map[string]interface{}) {
 	}
 
 	switch currentAction {
+	case "disconnected":
+		c.reconnect(message)
 	case "message":
 		c.processMessage(message)
 	case "pop":
 		c.popRequest(message)
 	}
+}
+
+func (c *ChatViewModel) reconnect(message map[string]interface{}) {
+	c.mu.Lock()
+	data, ok := message["node"].(string)
+	if !ok {
+		log.Println("Node URL missing: expected valid URL string")
+		return
+	}
+
+	disconnectedNodeName, disconnectedNode := c.getSelectedNode(&data)
+	nodeConnections := *c.NodeConnections
+	_, ok = nodeConnections[*disconnectedNodeName]
+	if !ok {
+		log.Println("Node not found in connections")
+		return
+	}
+	c.mu.Lock()
+	newConnection := di.GetRegisterService().ConnectToNode(disconnectedNode, c.user, c.password)
+	nodeConnections[*disconnectedNodeName] = newConnection
+	go newConnection.SubscribeToChanges()
+	c.NodeConnections = &nodeConnections
+	c.mu.Unlock()
+}
+
+func (c *ChatViewModel) getSelectedNode(url *string) (*string, *models.Node) {
+	var selectedNode string
+	var node models.Node
+	for name, n := range *c.NodeConnections {
+		disconnectedNode := n.Get(url)
+		if disconnectedNode == nil {
+			continue
+		}
+		selectedNode = name
+		node = *disconnectedNode
+	}
+
+	return &selectedNode, &node
 }
 
 func (c *ChatViewModel) processMessage(message map[string]interface{}) {

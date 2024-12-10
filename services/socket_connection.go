@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"client/models"
 )
 
 type SocketConnection struct {
@@ -17,10 +19,11 @@ type SocketConnection struct {
 	messageCh  chan map[string]interface{}
 	url        *string
 	handshake  *map[string]interface{}
+	node       *models.Node
 	mu         sync.Mutex
 }
 
-func (s *SocketConnection) Connect(url *string, handshake *map[string]interface{}) bool {
+func (s *SocketConnection) Connect(url *string, handshake *map[string]interface{}, this *models.Node) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	socketUrl := fmt.Sprintf("wss://%s/v1/rlt/ws", strings.TrimPrefix(*url, "https://"))
@@ -52,6 +55,7 @@ func (s *SocketConnection) Connect(url *string, handshake *map[string]interface{
 	s.messageCh = make(chan map[string]interface{})
 	s.url = url
 	s.handshake = handshake
+	s.node = this
 
 	go s.handlePing()
 	go s.listenForMessages()
@@ -59,15 +63,13 @@ func (s *SocketConnection) Connect(url *string, handshake *map[string]interface{
 	return true
 }
 
-func (s *SocketConnection) reconnect() {
-	for {
-		log.Println("Attempting to reconnect...")
-		if s.Connect(s.url, s.handshake) {
-			log.Println("Reconnected successfully")
-			return
-		}
-		time.Sleep(5 * time.Second)
+func (s *SocketConnection) Get(url *string) *models.Node {
+	match := s.url == url
+	if !match {
+		return nil
 	}
+
+	return s.node
 }
 
 func (s *SocketConnection) handlePing() {
@@ -76,9 +78,12 @@ func (s *SocketConnection) handlePing() {
 		err := s.connection.WriteMessage(websocket.PingMessage, nil)
 		s.mu.Unlock()
 		if err != nil {
+			message := make(map[string]interface{})
+			message["action"] = "disconnected"
+			message["node"] = s.url
+			s.messageCh <- message
 			log.Printf("Ping failed, WebSocket might be disconnected: %v", err)
 			close(s.messageCh)
-			go s.reconnect()
 			break
 		}
 		time.Sleep(30 * time.Second)
@@ -90,13 +95,17 @@ func (s *SocketConnection) listenForMessages() {
 		var message map[string]interface{}
 		err := s.connection.ReadJSON(&message)
 		if err != nil {
+			message := make(map[string]interface{})
+			message["action"] = "disconnected"
+			message["node"] = s.url
+
+			s.messageCh <- message
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
 				log.Printf("WebSocket closed unexpectedly: %v", err)
 			} else {
 				log.Printf("ReadJSON error: %v", err)
 			}
 			close(s.messageCh)
-			go s.reconnect()
 			return
 		}
 		s.messageCh <- message

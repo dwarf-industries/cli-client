@@ -9,6 +9,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"client/interfaces"
+	"client/repositories"
 	"client/services"
 )
 
@@ -54,14 +55,20 @@ func SetupServices() {
 	}
 	certificateService = &services.CertificateService{}
 	keyService = &services.KeyService{}
-	registerService = &services.RegisterService{
-		WalletService:       walletService,
-		RpcService:          rpcService,
-		ContractAddr:        os.Getenv("CONTRACT_ADDRESS"),
-		VerificationService: IdentityVerificationService,
-	}
 	authenticationService = &services.AuthenticationService{}
 	authenticationService.Init()
+	keysRepo := repositories.KeysRepository{}
+	keysRepo.Init(storage)
+	registerService = &services.RegisterService{
+		WalletService:         walletService,
+		RpcService:            rpcService,
+		ContractAddr:          os.Getenv("CONTRACT_ADDRESS"),
+		VerificationService:   IdentityVerificationService,
+		AuthenticationService: authenticationService,
+		CertificateService:    certificateService,
+		PasswordManager:       passwordManager,
+		KeysRepository:        keysRepo,
+	}
 	socketService = &services.SocketConnection{}
 	paymentProcessor = &services.PaymentProcessor{
 		WalletService: walletService,
